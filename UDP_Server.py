@@ -3,6 +3,8 @@ import time as t
 import netifaces as ni
 import struct
 
+#<!> DO NOT CHANGE VALUE BELOW <!>
+
 serverIP = ""
 serverPort = 67
 
@@ -12,9 +14,15 @@ server.setsockopt(s.SOL_SOCKET, s.SO_BROADCAST, 1) # Broadcast
 server.bind((serverIP, serverPort))
 print("server (" +  serverIP + "," + str(serverPort) + ") ready")
 
-ni.ifaddresses('enp0s3')
 your_ip = ni.ifaddresses('enp0s3')[ni.AF_INET][0]['addr']
 print(f"Own IP: {your_ip}\n")
+
+
+# Value below can be changed
+dhcp_ip = "192.168.102.5"
+client_ip = "192.168.102.50"
+
+print(f'Server DHCP IP:{dhcp_ip}')
 
 """
 DHCP Format length in byte.
@@ -59,27 +67,23 @@ def data_decoder(data):
 	return decoded_data
 
 def dhcp_offer(data, addr):
-	"""
-	Function to send response.
-	"""
-	
 	value = {}
-	value[dhcp_format[0]['field']] = b'\x02' #op_code
-	value[dhcp_format[1]['field']] = b'\x01' #htype
-	value[dhcp_format[2]['field']] = b'\x06' #hlen
-	value[dhcp_format[3]['field']] = b'\x00' #hops
-	value[dhcp_format[4]['field']] = b'\x01\x05\x08\x09' #xid
-	value[dhcp_format[5]['field']] = b'\x00\x00' #secs
-	value[dhcp_format[6]['field']] = b'\x00\x00' #flags
-	value[dhcp_format[7]['field']] = s.inet_aton('192.168.1.50') #ciaddr
-	value[dhcp_format[8]['field']] = s.inet_aton(your_ip) #yiaddr
-	value[dhcp_format[9]['field']] = s.inet_aton(your_ip) #siaddr
-	value[dhcp_format[10]['field']] = data[10]['giaddr'] #giaddr
-	value[dhcp_format[11]['field']] = data[11]['chaddr'] #chaddr
-	value[dhcp_format[12]['field']] = bytearray(64) #sname
-	value[dhcp_format[13]['field']] = bytearray(128) #file
+	value[dhcp_format[0]['field']] = b'\x02' # op_code
+	value[dhcp_format[1]['field']] = b'\x01' # htype
+	value[dhcp_format[2]['field']] = b'\x06' # hlen
+	value[dhcp_format[3]['field']] = b'\x00' # hops
+	value[dhcp_format[4]['field']] = b'\x01\x05\x08\x09' # xid
+	value[dhcp_format[5]['field']] = b'\x00\x00' # secs
+	value[dhcp_format[6]['field']] = b'\x00\x00' # flags
+	value[dhcp_format[7]['field']] = s.inet_aton(client_ip) # ciaddr
+	value[dhcp_format[8]['field']] = s.inet_aton(your_ip) # yiaddr
+	value[dhcp_format[9]['field']] = s.inet_aton(dhcp_ip) # siaddr
+	value[dhcp_format[10]['field']] = data[10]['giaddr'] # giaddr
+	value[dhcp_format[11]['field']] = data[11]['chaddr'] # chaddr
+	value[dhcp_format[12]['field']] = bytearray(64) # sname
+	value[dhcp_format[13]['field']] = bytearray(128) # file
 	
-	magic_cookie = s.inet_aton('99.130.83.99')
+	magic_cookie = s.inet_aton('99.130.83.99') # Default value
 	DHCPOptions1 = bytes([53 , 1 , 2]) # => option 53, length 1, DHCP Offer
 	"""
 	DHCPOptions2 = bytes([3, 4]) + s.inet_aton('255.255.255.0') #Subnet mask
@@ -100,19 +104,80 @@ def dhcp_offer(data, addr):
 	#data_to_send += DHCPOptions5
 	data_to_send += bytes([255])
 	
-	print(f"Data to send:{data_to_send}\n")
-	print(f"Data send to:{addr}")
-	server.sendto(data_to_send, ('255.255.255.255', 68))
+	print(f"Data to send:\n{data_to_send}\n")
+	#server.sendto(data_to_send, ('255.255.255.255', 68))
 	server.sendto(data_to_send, addr)
-	print("Data sent!\n")
+	print(f"DHCP Offer data sent to:{addr}\n")
+	
+def dhcp_ack(data, addr):
+	value = {}
+	value[dhcp_format[0]['field']] = b'\x02' # op_code
+	value[dhcp_format[1]['field']] = b'\x01' # htype
+	value[dhcp_format[2]['field']] = b'\x06' # hlen
+	value[dhcp_format[3]['field']] = b'\x00' # hops
+	value[dhcp_format[4]['field']] = b'\x01\x05\x08\x10' # xid
+	value[dhcp_format[5]['field']] = b'\x00\x00' # secs
+	value[dhcp_format[6]['field']] = b'\x00\x00' # flags
+	value[dhcp_format[7]['field']] = s.inet_aton(client_ip) # ciaddr
+	value[dhcp_format[8]['field']] = s.inet_aton(your_ip) # yiaddr
+	value[dhcp_format[9]['field']] = s.inet_aton(dhcp_ip) # siaddr
+	value[dhcp_format[10]['field']] = data[10]['giaddr'] # giaddr
+	value[dhcp_format[11]['field']] = data[11]['chaddr'] # chaddr
+	value[dhcp_format[12]['field']] = bytearray(64) # sname
+	value[dhcp_format[13]['field']] = bytearray(128) # file
+	
+	magic_cookie = s.inet_aton('99.130.83.99') # Default value
+	DHCPOptions1 = bytes([53 , 1 , 5]) # => option 53, length 1, DHCP Ack
+	
+	data_to_send = b""
+
+	for val in value.values():
+		data_to_send += val
+	
+	data_to_send += magic_cookie
+	data_to_send += DHCPOptions1
+	data_to_send += bytes([255])
+	
+	print(f"Data to send:\n{data_to_send}\n")
+	server.sendto(data_to_send, addr)
+	print(f"DHCP Ack data sent to:{addr}\n")
+
+def check_message_type(data):
+	"""
+	Function to check message type (DISCOVER, OFFER, REQUEST, ACK).
+	Return :
+	1 for DISCOVER
+	2 for OFFER
+	3 for REQUEST
+	5 for ACK
+	"""
+	options = data[14]['options']
+	
+	print("options")
+	if options[6:7].hex() == '01':
+		print("DISCOVER\n")
+		return 1
+	elif options[6:7].hex() == '02':
+		print("OFFER\n")
+		return 2
+	elif options[6:7].hex() == '03':
+		print("REQUEST\n")
+		return 3
+	elif options[6:7].hex() == '05':
+		print("ACK\n")
+		return 5
 	
 def start():
 	while True:
-		data, addr = server.recvfrom(2048) #DHCP DISCOVER
+		data, addr = server.recvfrom(2048) # DHCP DISCOVER OR REQUEST
 		print(f"Server has received:\n{data}\n")
 		
 		decoded_data = data_decoder(data)
 		print(f"{decoded_data}\n")
 		
-		dhcp_offer(decoded_data, addr) #DHCP OFFER
+		msg_type = check_message_type(decoded_data)
+		if msg_type == 1:
+			dhcp_offer(decoded_data, ('192.168.102.0', 68)) # DHCP OFFER
+		elif msg_type == 3:
+			dhcp_ack(decoded_data, ('192.168.102.0', 68)) # DHCP ACK
 start()
