@@ -12,8 +12,8 @@ server.bind((serverIP, serverPort))
 print("server (" +  serverIP + "," + str(serverPort) + ") ready")
 
 ni.ifaddresses('enp0s3')
-ip = ni.ifaddresses('enp0s3')[ni.AF_INET][0]['addr']
-print(f"Own IP: {ip}\n")
+your_ip = ni.ifaddresses('enp0s3')[ni.AF_INET][0]['addr']
+print(f"Own IP: {your_ip}\n")
 
 """
 DHCP Format length in byte.
@@ -71,8 +71,8 @@ def dhcp_offer(data, addr):
 	value[dhcp_format[5]['field']] = b'\x01' #secs
 	value[dhcp_format[6]['field']] = b'\x00\x00' #flags
 	value[dhcp_format[7]['field']] = s.inet_aton('192.168.1.50') #ciaddr
-	value[dhcp_format[8]['field']] = s.inet_aton('192.168.1.47') #yiaddr
-	value[dhcp_format[9]['field']] = s.inet_aton('192.168.1.47') #siaddr
+	value[dhcp_format[8]['field']] = s.inet_aton(your_ip) #yiaddr
+	value[dhcp_format[9]['field']] = s.inet_aton(your_ip) #siaddr
 	value[dhcp_format[10]['field']] = data[10]['giaddr'] #giaddr
 	value[dhcp_format[11]['field']] = data[11]['chaddr'] #chaddr
 	
