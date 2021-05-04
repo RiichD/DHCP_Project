@@ -79,12 +79,12 @@ def dhcp_offer(data, addr):
 	value[dhcp_format[12]['field']] = bytearray(64) #sname
 	value[dhcp_format[13]['field']] = bytearray(128) #file
 	
-	magic_cookie = bytes([0x63, 0x82, 0x53, 0x63])
+	magic_cookie = s.inet_aton('99.130.83.99')
 	DHCPOptions1 = bytes([53 , 1 , 2]) # => option 53, length 1, DHCP Offer
 	"""
 	DHCPOptions2 = bytes([3, 4]) + s.inet_aton('255.255.255.0') #Subnet mask
 	DHCPOptions3 = bytes([3 , 4]) + s.inet_aton('192.168.1.1') #192.168.1.1 router
-	DHCPOptions4 = bytes([51 , 4 , 0x00, 0x01, 0x51, 0x80]) #86400s(1 day) IP address lease time
+	DHCPOptions4 = bytes([51 , 4 , 0x00, 0x01, 0x51, 0x80]) # 86400s IP lease time
 	DHCPOptions5 = bytes([54 , 4 , 0xC0, 0xA8, 0x01, 0x01]) # DHCP server
 	"""
 	data_to_send = b""
