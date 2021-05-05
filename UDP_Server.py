@@ -2,6 +2,7 @@ import socket as s
 import time as t
 import struct
 from threading import *
+import random as r
 
 #<!> DO NOT CHANGE VALUE BELOW <!>
 serverIP = ""
@@ -18,9 +19,11 @@ dhcp_ip = "192.168.102.5"
 subnet_mask_ip = "255.255.255.0"
 
 client_ip = "192.168.102.50"
-client_low = "192.168.102.100"
-client_up = "192.168.102.200"
+client_first_addr = "192.168.102.100"
+client_last_addr = "192.168.102.200"
 target_ip = "192.168.102.0"
+
+#print(s.inet_aton(client_up).hex()-s.inet_aton(client_low).hex())
 
 # Optional value
 router_ip = "192.168.102.5"
@@ -202,6 +205,15 @@ def options_reader(data):
 			b_pos += 1
 		print(result)
 
+def random_ip_generator(first, last):
+	"""
+	Function that generates ip between the lowest and the highest.
+	"""
+	interval = r.randint(int(s.inet_aton(first).hex(), 16), int(s.inet_aton(last).hex(), 16))
+	ip = s.inet_ntoa(s.inet_aton(hex(interval)))
+	print(f"Random IP between {first} and {last}: {ip}\n")
+	return ip
+
 def config_serveur():
 	print("configuring the serveur")
 	config_file = open("conf.txt", 'r')
@@ -232,4 +244,5 @@ def handle_client():
 def start():
 	Thread(target=handle_client())
 
+random_ip_generator(client_first_addr, client_last_addr) # Test 
 start()
