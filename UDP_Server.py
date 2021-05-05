@@ -1,6 +1,5 @@
 import socket as s
 import time as t
-#import netifaces as ni
 import struct
 from threading import *
 
@@ -15,7 +14,6 @@ server.bind((serverIP, serverPort))
 print("server (" +  serverIP + "," + str(serverPort) + ") ready")
 
 # Value below can be changed
-#your_ip = ni.ifaddresses('enp0s3')[ni.AF_INET][0]['addr']
 dhcp_ip = "192.168.102.5"
 subnet_mask_ip = "255.255.255.0"
 
@@ -26,8 +24,11 @@ target_ip = "192.168.102.0"
 router_ip = "192.168.102.5"
 lease_time_ip = 86400
 
-#print(f"Own IP: {your_ip}")
+print(f'Server Configuration:\n')
 print(f'Server DHCP IP:{dhcp_ip}')
+print(f'Server DHCP IP:{subnet_mask_ip}')
+print(f'Server DHCP IP:{client_ip}')
+print(f'Server DHCP IP:{target_ip}')
 
 """
 DHCP Format length in byte.
