@@ -1,10 +1,10 @@
 import socket as s
 import time as t
-import netifaces as ni
+#import netifaces as ni
 import struct
+from threading import *
 
 #<!> DO NOT CHANGE VALUE BELOW <!>
-
 serverIP = ""
 serverPort = 67
 
@@ -15,18 +15,18 @@ server.bind((serverIP, serverPort))
 print("server (" +  serverIP + "," + str(serverPort) + ") ready")
 
 # Value below can be changed
-your_ip = ni.ifaddresses('enp0s8')[ni.AF_INET][0]['addr']
+#your_ip = ni.ifaddresses('enp0s3')[ni.AF_INET][0]['addr']
 dhcp_ip = "192.168.102.5"
 subnet_mask_ip = "255.255.255.0"
 
-client_ip = "192.168.102.51"
+client_ip = "192.168.1.50"
 target_ip = "192.168.102.0"
 
 # Optional value
-#router_ip = "192.168.102.5"
-#lease_time_ip = 86400
+router_ip = "192.168.102.5"
+lease_time_ip = 86400
 
-print(f"Own IP: {your_ip}")
+#print(f"Own IP: {your_ip}")
 print(f'Server DHCP IP:{dhcp_ip}')
 
 """
@@ -55,11 +55,11 @@ def data_decoder(data):
 	Function to decode data depending on dhcp_format.
 	"""
 	print("Decoding data...")
-	
+
 	b_pos = 0 #Byte position
-	
+
 	decoded_data = []
-	
+
 	for dhcp_f in dhcp_format:
 		value = {}
 		if dhcp_f['field'] == "options": #Ignore options
@@ -77,7 +77,7 @@ def dhcp_offer(data, addr):
 	value[dhcp_format[1]['field']] = b'\x01' # htype
 	value[dhcp_format[2]['field']] = b'\x06' # hlen
 	value[dhcp_format[3]['field']] = b'\x00' # hops
-	value[dhcp_format[4]['field']] = data[4]['xid']#b'\x01\x05\x08\x09' # xid
+	value[dhcp_format[4]['field']] = data[4]['xid'] # xid
 	value[dhcp_format[5]['field']] = b'\x00\x00' # secs
 	value[dhcp_format[6]['field']] = b'\x00\x00' # flags
 	value[dhcp_format[7]['field']] = data[7]['ciaddr'] # ciaddr
@@ -87,35 +87,32 @@ def dhcp_offer(data, addr):
 	value[dhcp_format[11]['field']] = data[11]['chaddr'] # chaddr
 	value[dhcp_format[12]['field']] = bytearray(64) # sname
 	value[dhcp_format[13]['field']] = bytearray(128) # file
-	
+
 	magic_cookie = s.inet_aton('99.130.83.99') # Default value
 	DHCPOptions1 = bytes([53 , 1 , 2]) # => option 53, length 1, DHCP Offer
 	DHCPOptions2 = bytes([1, 4]) + s.inet_aton(subnet_mask_ip) # Subnet mask
-	"""
 	DHCPOptions3 = bytes([3, 4]) + s.inet_aton(router_ip) # Router
 	DHCPOptions4 = bytes([51, 4]) + s.inet_aton(str(lease_time_ip)) # IP lease time
 	DHCPOptions5 = bytes([54 , 4]) + s.inet_aton(dhcp_ip) # DHCP server
-	"""
+
 	data_to_send = b""
 
 	for val in value.values():
 		data_to_send += val
-	
+
 	data_to_send += magic_cookie
 	data_to_send += DHCPOptions1
 	data_to_send += DHCPOptions2
-	"""
 	data_to_send += DHCPOptions3
 	data_to_send += DHCPOptions4
 	data_to_send += DHCPOptions5
-	"""
 	data_to_send += bytes([255])
-	
+
 	print(f"Data to send:\n{data_to_send}\n")
 	server.sendto(data_to_send, (target_ip, 68))
 	server.sendto(data_to_send, addr)
 	print(f"DHCP Offer data sent to:{addr}\n")
-	
+
 def dhcp_ack(data, addr):
 	value = {}
 	value[dhcp_format[0]['field']] = b'\x02' # op_code
@@ -132,30 +129,26 @@ def dhcp_ack(data, addr):
 	value[dhcp_format[11]['field']] = data[11]['chaddr'] # chaddr
 	value[dhcp_format[12]['field']] = bytearray(64) # sname
 	value[dhcp_format[13]['field']] = bytearray(128) # file
-	
+
 	magic_cookie = s.inet_aton('99.130.83.99') # Default value
 	DHCPOptions1 = bytes([53 , 1 , 5]) # => option 53, length 1, DHCP Ack
 	DHCPOptions2 = bytes([1, 4]) + s.inet_aton(subnet_mask_ip) # Subnet mask
-	"""
 	DHCPOptions3 = bytes([3, 4]) + s.inet_aton(router_ip) # Router
 	DHCPOptions4 = bytes([51, 4]) + s.inet_aton(str(lease_time_ip)) # IP lease time
 	DHCPOptions5 = bytes([54 , 4]) + s.inet_aton(dhcp_ip) # DHCP server
-	"""
 	data_to_send = b""
 
 	for val in value.values():
 		data_to_send += val
-	
+
 	data_to_send += magic_cookie
 	data_to_send += DHCPOptions1
 	data_to_send += DHCPOptions2
-	"""
 	data_to_send += DHCPOptions3
 	data_to_send += DHCPOptions4
 	data_to_send += DHCPOptions5
-	"""
 	data_to_send += bytes([255])
-	
+
 	print(f"Data to send:\n{data_to_send}\n")
 	server.sendto(data_to_send, (target_ip, 68))
 	server.sendto(data_to_send, addr)
@@ -171,7 +164,7 @@ def check_message_type(data):
 	5 for ACK
 	"""
 	options = data[14]['options']
-	
+
 	print("options")
 	if options[6:7].hex() == '01':
 		print("DISCOVER\n")
@@ -185,18 +178,55 @@ def check_message_type(data):
 	elif options[6:7].hex() == '05':
 		print("ACK\n")
 		return 5
-	
-def start():
+
+def options_reader(data):
+	opt_data = data[14]['options']
+
+	b_pos = 4 # Starts at 4 to ignore magic cookie
+	opt_size = len(opt_data)
+
+	while b_pos < opt_size:
+		if opt_data[b_pos] == 255:
+			break
+		print(f"Option {opt_data[b_pos]}, ")
+		b_pos += 1
+		print(f"Length {opt_data[b_pos]}, ")
+		opt_len = opt_data[b_pos] + b_pos + 1
+		b_pos += 1
+		result = ''
+		while b_pos < opt_len and b_pos < opt_size:
+			result += str(opt_data[b_pos]) + " "
+			b_pos += 1
+		print(result)
+
+def config_serveur():
+	print("configuring the serveur")
+	config_file = open("conf.txt", 'r')
+	file_content = config_file.readlines()
+	print(file_content)
+	serveur_params = {}
+	for item in file_content:
+		x,y = item.split(':')
+		serveur_params[x] = y[:-1]
+	print(serveur_params)
+	config_file.close()
+
+def handle_client():
 	while True:
 		data, addr = server.recvfrom(2048) # DHCP DISCOVER OR REQUEST
 		print(f"Server has received:\n{data}\n")
-		
+
 		decoded_data = data_decoder(data)
 		print(f"{decoded_data}\n")
-		
+
+		options_reader(decoded_data)
 		msg_type = check_message_type(decoded_data)
 		if msg_type == 1:
-			dhcp_offer(decoded_data, addr) # DHCP OFFER
+			resp_data = dhcp_offer(decoded_data, addr) # DHCP OFFER
 		elif msg_type == 3:
-			dhcp_ack(decoded_data, addr) # DHCP ACK
+			resp_data = dhcp_ack(decoded_data, addr) # DHCP ACK
+
+def start():
+	Thread(target=handle_client())
+
 start()
