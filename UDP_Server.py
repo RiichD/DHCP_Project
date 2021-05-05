@@ -17,6 +17,11 @@ print("server (" +  serverIP + "," + str(serverPort) + ") ready")
 # Value below can be changed
 your_ip = ni.ifaddresses('enp0s8')[ni.AF_INET][0]['addr']
 dhcp_ip = "192.168.102.5"
+router_ip = "192.168.102.5"
+subnet_mask_ip = "255.255.255.0"
+
+lease_time_ip = 86400
+
 client_ip = "192.168.102.50"
 target_ip = "192.168.102.0"
 
@@ -84,10 +89,10 @@ def dhcp_offer(data, addr):
 	
 	magic_cookie = s.inet_aton('99.130.83.99') # Default value
 	DHCPOptions1 = bytes([53 , 1 , 2]) # => option 53, length 1, DHCP Offer
-	DHCPOptions2 = bytes([3, 4]) + s.inet_aton('255.255.255.0') #Subnet mask
-	DHCPOptions3 = bytes([3 , 4]) + s.inet_aton('192.168.102.1') #router
-	DHCPOptions4 = bytes([51 , 4 , 0x00, 0x01, 0x51, 0x80]) # 86400s IP lease time
-	DHCPOptions5 = bytes([54 , 4 , 0xC0, 0xA8, 0x01, 0x01]) # DHCP server
+	DHCPOptions2 = bytes([1, 4]) + s.inet_aton(subnet_mask_ip) # Subnet mask
+	DHCPOptions3 = bytes([3, 4]) + s.inet_aton(router_ip) # Router
+	DHCPOptions4 = bytes([51, 4]) + s.inet_aton(str(lease_time_ip)) # IP lease time
+	DHCPOptions5 = bytes([54 , 4]) + s.inet_aton(dhcp_ip) # DHCP server
 	
 	data_to_send = b""
 
@@ -126,10 +131,10 @@ def dhcp_ack(data, addr):
 	
 	magic_cookie = s.inet_aton('99.130.83.99') # Default value
 	DHCPOptions1 = bytes([53 , 1 , 5]) # => option 53, length 1, DHCP Ack
-	DHCPOptions2 = bytes([3, 4]) + s.inet_aton('255.255.255.0') #Subnet mask
-	DHCPOptions3 = bytes([3 , 4]) + s.inet_aton('192.168.102.1') #router
-	DHCPOptions4 = bytes([51 , 4 , 0x00, 0x01, 0x51, 0x80]) # 86400s IP lease time
-	DHCPOptions5 = bytes([54 , 4 , 0xC0, 0xA8, 0x01, 0x01]) # DHCP server
+	DHCPOptions2 = bytes([1, 4]) + s.inet_aton(subnet_mask_ip) # Subnet mask
+	DHCPOptions3 = bytes([3, 4]) + s.inet_aton(router_ip) # Router
+	DHCPOptions4 = bytes([51, 4]) + s.inet_aton(str(lease_time_ip)) # IP lease time
+	DHCPOptions5 = bytes([54 , 4]) + s.inet_aton(dhcp_ip) # DHCP server
 	
 	data_to_send = b""
 
