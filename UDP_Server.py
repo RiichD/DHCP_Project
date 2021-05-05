@@ -23,8 +23,6 @@ client_first_addr = "192.168.102.100"
 client_last_addr = "192.168.102.200"
 target_ip = "192.168.102.0"
 
-#print(s.inet_aton(client_up).hex()-s.inet_aton(client_low).hex())
-
 # Optional value
 router_ip = "192.168.102.5"
 lease_time_ip = 86400
