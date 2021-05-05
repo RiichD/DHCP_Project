@@ -17,13 +17,14 @@ print("server (" +  serverIP + "," + str(serverPort) + ") ready")
 # Value below can be changed
 your_ip = ni.ifaddresses('enp0s8')[ni.AF_INET][0]['addr']
 dhcp_ip = "192.168.102.5"
-router_ip = "192.168.102.5"
 subnet_mask_ip = "255.255.255.0"
 
-lease_time_ip = 86400
-
-client_ip = "192.168.102.50"
+client_ip = "192.168.102.51"
 target_ip = "192.168.102.0"
+
+# Optional value
+#router_ip = "192.168.102.5"
+#lease_time_ip = 86400
 
 print(f"Own IP: {your_ip}")
 print(f'Server DHCP IP:{dhcp_ip}')
@@ -90,10 +91,11 @@ def dhcp_offer(data, addr):
 	magic_cookie = s.inet_aton('99.130.83.99') # Default value
 	DHCPOptions1 = bytes([53 , 1 , 2]) # => option 53, length 1, DHCP Offer
 	DHCPOptions2 = bytes([1, 4]) + s.inet_aton(subnet_mask_ip) # Subnet mask
+	"""
 	DHCPOptions3 = bytes([3, 4]) + s.inet_aton(router_ip) # Router
 	DHCPOptions4 = bytes([51, 4]) + s.inet_aton(str(lease_time_ip)) # IP lease time
 	DHCPOptions5 = bytes([54 , 4]) + s.inet_aton(dhcp_ip) # DHCP server
-	
+	"""
 	data_to_send = b""
 
 	for val in value.values():
@@ -102,9 +104,11 @@ def dhcp_offer(data, addr):
 	data_to_send += magic_cookie
 	data_to_send += DHCPOptions1
 	data_to_send += DHCPOptions2
+	"""
 	data_to_send += DHCPOptions3
 	data_to_send += DHCPOptions4
 	data_to_send += DHCPOptions5
+	"""
 	data_to_send += bytes([255])
 	
 	print(f"Data to send:\n{data_to_send}\n")
@@ -132,10 +136,11 @@ def dhcp_ack(data, addr):
 	magic_cookie = s.inet_aton('99.130.83.99') # Default value
 	DHCPOptions1 = bytes([53 , 1 , 5]) # => option 53, length 1, DHCP Ack
 	DHCPOptions2 = bytes([1, 4]) + s.inet_aton(subnet_mask_ip) # Subnet mask
+	"""
 	DHCPOptions3 = bytes([3, 4]) + s.inet_aton(router_ip) # Router
 	DHCPOptions4 = bytes([51, 4]) + s.inet_aton(str(lease_time_ip)) # IP lease time
 	DHCPOptions5 = bytes([54 , 4]) + s.inet_aton(dhcp_ip) # DHCP server
-	
+	"""
 	data_to_send = b""
 
 	for val in value.values():
@@ -144,9 +149,11 @@ def dhcp_ack(data, addr):
 	data_to_send += magic_cookie
 	data_to_send += DHCPOptions1
 	data_to_send += DHCPOptions2
+	"""
 	data_to_send += DHCPOptions3
 	data_to_send += DHCPOptions4
 	data_to_send += DHCPOptions5
+	"""
 	data_to_send += bytes([255])
 	
 	print(f"Data to send:\n{data_to_send}\n")
