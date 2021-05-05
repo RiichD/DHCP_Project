@@ -21,7 +21,7 @@ subnet_mask_ip = "255.255.255.0"
 client_ip = "192.168.102.50"
 client_first_addr = "192.168.102.100"
 client_last_addr = "192.168.102.200"
-target_ip = "192.168.102.0"
+target_ip = "192.168.102.0" # Broadcast IP
 
 # Optional value
 router_ip = "192.168.102.5"
@@ -75,7 +75,7 @@ def data_decoder(data):
 		b_pos+=dhcp_f['length']
 	return decoded_data
 
-def dhcp_offer(data, addr):
+def dhcp_offer(data, addr, ip):
 	value = {}
 	value[dhcp_format[0]['field']] = b'\x02' # op_code
 	value[dhcp_format[1]['field']] = b'\x01' # htype
@@ -85,7 +85,7 @@ def dhcp_offer(data, addr):
 	value[dhcp_format[5]['field']] = b'\x00\x00' # secs
 	value[dhcp_format[6]['field']] = b'\x00\x00' # flags
 	value[dhcp_format[7]['field']] = data[7]['ciaddr'] # ciaddr
-	value[dhcp_format[8]['field']] = s.inet_aton(client_ip) # yiaddr
+	value[dhcp_format[8]['field']] = s.inet_aton(ip) # yiaddr
 	value[dhcp_format[9]['field']] = s.inet_aton(dhcp_ip) # siaddr
 	value[dhcp_format[10]['field']] = data[10]['giaddr'] # giaddr
 	value[dhcp_format[11]['field']] = data[11]['chaddr'] # chaddr
@@ -116,8 +116,9 @@ def dhcp_offer(data, addr):
 	server.sendto(data_to_send, (target_ip, 68))
 	server.sendto(data_to_send, addr)
 	print(f"DHCP Offer data sent to:{addr}\n")
+	return data_to_send
 
-def dhcp_ack(data, addr):
+def dhcp_ack(data, addr, ip):
 	value = {}
 	value[dhcp_format[0]['field']] = b'\x02' # op_code
 	value[dhcp_format[1]['field']] = b'\x01' # htype
@@ -127,7 +128,7 @@ def dhcp_ack(data, addr):
 	value[dhcp_format[5]['field']] = b'\x00\x00' # secs
 	value[dhcp_format[6]['field']] = b'\x00\x00' # flags
 	value[dhcp_format[7]['field']] = data[7]['ciaddr'] # ciaddr
-	value[dhcp_format[8]['field']] = s.inet_aton(client_ip) # yiaddr
+	value[dhcp_format[8]['field']] = s.inet_aton(ip) # yiaddr
 	value[dhcp_format[9]['field']] = s.inet_aton(dhcp_ip) # siaddr
 	value[dhcp_format[10]['field']] = data[10]['giaddr'] # giaddr
 	value[dhcp_format[11]['field']] = data[11]['chaddr'] # chaddr
@@ -157,6 +158,7 @@ def dhcp_ack(data, addr):
 	server.sendto(data_to_send, (target_ip, 68))
 	server.sendto(data_to_send, addr)
 	print(f"DHCP Ack data sent to:{addr}\n")
+	return data_to_send
 
 def check_message_type(data):
 	"""
@@ -212,6 +214,11 @@ def random_ip_generator(first, last):
 	print(f"Random IP between {first} and {last}: {ip}\n")
 	return ip
 
+def check_ip_avaibility(ip):
+	"""
+	Function to check if ip is available.
+	"""
+
 def config_serveur():
 	print("configuring the serveur")
 	config_file = open("conf.txt", 'r')
@@ -230,17 +237,25 @@ def handle_client():
 		print(f"Server has received:\n{data}\n")
 
 		decoded_data = data_decoder(data)
-		print(f"{decoded_data}\n")
+		#print(f"{decoded_data}\n")
 
-		options_reader(decoded_data)
+		#options_reader(decoded_data)
 		msg_type = check_message_type(decoded_data)
 		if msg_type == 1:
-			resp_data = dhcp_offer(decoded_data, addr) # DHCP OFFER
+			resp_data = dhcp_offer(decoded_data, addr, client_ip) # DHCP OFFER
+			log_update(f"DISCOVER:\n{str(data)}\n")
+			log_update(f"OFFER:\n{str(resp_data)}\n")
 		elif msg_type == 3:
-			resp_data = dhcp_ack(decoded_data, addr) # DHCP ACK
+			resp_data = dhcp_ack(decoded_data, addr, client_ip) # DHCP ACK
+			log_update(f"REQUEST:\n{str(data)}\n")
+			log_update(f"ACK:\n{str(resp_data)}\n")
+
+def log_update(data):
+	f = open("log_file", "a+")
+	f.write(data)
+	f.close()
 
 def start():
 	Thread(target=handle_client())
-
-random_ip_generator(client_first_addr, client_last_addr) # Test 
+ 
 start()
