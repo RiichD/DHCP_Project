@@ -65,15 +65,13 @@ dhcp_options = {
 }
 
 def config_server():
-	print("configuring server")
+	print("Configuring server")
 	config_file = open("conf.txt", 'r')
 	file_content = config_file.readlines()
-	print(file_content)
 	server_params = {}
 	for item in file_content:
 		x,y = item.split(':')
 		server_params[x] = y[:-1] # Remove newline
-	print(server_params)
 	config_file.close()
 	return server_params
 	
@@ -81,12 +79,8 @@ def data_decoder(data):
 	"""
 	Function to decode data depending on dhcp_format.
 	"""
-	print("Decoding data...")
-
 	b_pos = 0 # Byte position
-
 	decoded_data = []
-
 	for dhcp_f in dhcp_format:
 		value = {}
 		if dhcp_f['field'] == "options":
@@ -193,19 +187,13 @@ def check_message_type(data):
 	5 for ACK
 	"""
 	options = data[14]['options']
-
-	print("options")
 	if options[6:7].hex() == '01':
-		print("DISCOVER\n")
 		return 1
 	elif options[6:7].hex() == '02':
-		print("OFFER\n")
 		return 2
 	elif options[6:7].hex() == '03':
-		print("REQUEST\n")
 		return 3
 	elif options[6:7].hex() == '05':
-		print("ACK\n")
 		return 5
 
 def options_reader(data):
@@ -250,18 +238,16 @@ def log_update(data):
 	log_lock.release()
 
 def handle_client(data, addr, client_ip):
-	print(f"Server has received:\n{data}\n")
-
+	print(f"Server received:\n{data}\n")
 	decoded_data = data_decoder(data)
-	#print(f"{decoded_data}\n")
-
-	#options_reader(decoded_data)
 	msg_type = check_message_type(decoded_data)
 	if msg_type == 1:
+		print("DISCOVER message\n")
 		resp_data = dhcp_offer(decoded_data, addr, client_ip) # DHCP OFFER
 		log_update(f"DISCOVER:\n{str(data)}\n")
 		log_update(f"OFFER:\n{str(resp_data)}\n")
 	elif msg_type == 3:
+		print("REQUEST message\n")
 		resp_data = dhcp_ack(decoded_data, addr, client_ip) # DHCP ACK
 		log_update(f"REQUEST:\n{str(data)}\n")
 		log_update(f"ACK:\n{str(resp_data)}\n")
