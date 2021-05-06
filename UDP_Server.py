@@ -17,12 +17,19 @@ print("server (" +  serverIP + "," + str(serverPort) + ") ready")
 DHCP_IP = ""
 DHCP_MASK_IP = ""
 CLIENT_FIRST_ADDR = ""
-CLIENT_LAST_ADDR = ""
+CLIENT_last_ADDR = ""
 target_ip = "" # Broadcast IP
 ROUTER_IP = ""
 LEASE_TIME_IP = -1
 
-log_lock = th.Lock()
+log_lock = th.Lock() # Lock for log_update()
+
+ip_state_list = {
+	'192.168.102.201':{'busy':False},
+	'192.168.102.202':{'busy':True, {'client_mac':'0099887766', 'lease_time':768}},
+	'192.168.102.203':{'busy':False},
+	'192.168.102.204':{'busy':True, {'client_mac':'0011223344', 'lease_time':20}}
+}
 
 """
 DHCP Format length in byte.
@@ -42,7 +49,7 @@ dhcp_format = [
 	{'field':'chaddr', 'name':'client_hardware_address', 'length':16, 'type':hex}, #MAC
 	{'field':'sname', 'name':'server_name', 'length':64, 'type':str},
 	{'field':'file', 'name':'boot_file_name', 'length':128, 'type':str},
-	{'field':'options', 'name':'options', 'length':0, 'type':hex}
+	{'field':'options', 'name':'options', 'length':0, 'type':hex} # length 0 == variable
 ]
 
 dhcp_options = {
@@ -255,7 +262,7 @@ def handle_client(data, addr, client_ip):
 def start():
 	while True:
 		data, addr = server.recvfrom(2048) # DHCP DISCOVER OR REQUEST
-		generated_ip = random_ip_generator(CLIENT_FIRST_ADDR, CLIENT_LAST_ADDR)
+		generated_ip = random_ip_generator(CLIENT_FIRST_ADDR, CLIENT_last_ADDR)
 		th.Thread(target=handle_client(data, addr, generated_ip))
 
 # Configurating DHCP server
@@ -263,7 +270,7 @@ config = config_server()
 DHCP_IP = config['network_addr']
 DHCP_MASK_IP = config['network_mask']
 CLIENT_FIRST_ADDR = config['client_first_addr']
-CLIENT_LAST_ADDR = config['client_last_addr']
+CLIENT_last_ADDR = config['client_last_addr']
 ROUTER_IP = config['router_ip']
 target_ip = config['broadcast_ip']
 LEASE_TIME_IP = config['client_lease_time']
@@ -273,7 +280,7 @@ print(f'Server Configuration:\n')
 print(f'Server dhcp IP:{DHCP_IP}')
 print(f'Server subnet mask IP:{DHCP_MASK_IP}')
 print(f'Server client first IP:{CLIENT_FIRST_ADDR}')
-print(f'Server client last IP:{CLIENT_LAST_ADDR}')
+print(f'Server client last IP:{CLIENT_last_ADDR}')
 print(f'Server router IP:{ROUTER_IP}')
 print(f'Server target(broadcast) IP:{target_ip}')
 print(f'Server lease time IP:{LEASE_TIME_IP}\n')
