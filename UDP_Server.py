@@ -2,6 +2,7 @@ import socket as s
 import time as t
 import struct
 import random as r
+from threading import *
 
 #<!> DO NOT CHANGE VALUE BELOW <!>
 serverIP = ""
@@ -14,23 +15,14 @@ server.bind((serverIP, serverPort))
 print("server (" +  serverIP + "," + str(serverPort) + ") ready")
 
 # Value below can be changed
-dhcp_ip = "192.168.102.5"
-subnet_mask_ip = "255.255.255.0"
-
-client_ip = "192.168.102.50"
-client_first_addr = "192.168.102.100"
-client_last_addr = "192.168.102.200"
-target_ip = "192.168.102.0" # Broadcast IP
-
-# Optional value
-router_ip = "192.168.102.5"
-lease_time_ip = 86400
-
-print(f'Server Configuration:\n')
-print(f'Server dhcp IP:{dhcp_ip}')
-print(f'Server subnet mask IP:{subnet_mask_ip}')
-print(f'Server client IP:{client_ip}')
-print(f'Server target(broadcast) IP:{target_ip}\n')
+DHCP_IP = ""#"192.168.102.5"
+DHCP_MASK_IP = ""#"255.255.255.0"
+#client_ip = "192.168.102.50"
+CLIENT_FIRST_ADDR = ""#"192.168.102.100"
+CLIENT_last_ADDR = ""#"192.168.102.200"
+target_ip = ""#"192.168.102.0" # Broadcast IP
+ROUTER_IP = ""#"192.168.102.5"
+LEASE_TIME_IP = -1#86400
 
 """
 DHCP Format length in byte.
@@ -71,6 +63,19 @@ dhcp_options = {
 	'option_61':{'name':'client_id', 'type': hex}, #MAC
 	'option_255':{'name':'end', 'type': int}
 }
+
+def config_server():
+	print("configuring server")
+	config_file = open("conf.txt", 'r')
+	file_content = config_file.readlines()
+	print(file_content)
+	server_params = {}
+	for item in file_content:
+		x,y = item.split(':')
+		server_params[x] = y[:-1] # Remove newline
+	print(server_params)
+	config_file.close()
+	return server_params
 	
 def data_decoder(data):
 	"""
@@ -78,13 +83,13 @@ def data_decoder(data):
 	"""
 	print("Decoding data...")
 
-	b_pos = 0 #Byte position
+	b_pos = 0 # Byte position
 
 	decoded_data = []
 
 	for dhcp_f in dhcp_format:
 		value = {}
-		if dhcp_f['field'] == "options": #Ignore options
+		if dhcp_f['field'] == "options":
 			value[dhcp_f['field']] = data[b_pos:]
 			decoded_data.append(value)
 			break
@@ -104,7 +109,7 @@ def dhcp_offer(data, addr, ip):
 	value[dhcp_format[6]['field']] = b'\x00\x00' # flags
 	value[dhcp_format[7]['field']] = data[7]['ciaddr'] # ciaddr
 	value[dhcp_format[8]['field']] = s.inet_aton(ip) # yiaddr
-	value[dhcp_format[9]['field']] = s.inet_aton(dhcp_ip) # siaddr
+	value[dhcp_format[9]['field']] = s.inet_aton(DHCP_IP) # siaddr
 	value[dhcp_format[10]['field']] = data[10]['giaddr'] # giaddr
 	value[dhcp_format[11]['field']] = data[11]['chaddr'] # chaddr
 	value[dhcp_format[12]['field']] = bytearray(64) # sname
@@ -112,10 +117,10 @@ def dhcp_offer(data, addr, ip):
 
 	magic_cookie = s.inet_aton('99.130.83.99') # Default value
 	DHCPOptions1 = bytes([53, 1, 2]) # => option 53, length 1, DHCP Offer
-	DHCPOptions2 = bytes([1, 4]) + s.inet_aton(subnet_mask_ip) # Subnet mask
-	DHCPOptions3 = bytes([3, 4]) + s.inet_aton(router_ip) # Router
-	DHCPOptions4 = bytes([51, 4]) + s.inet_aton(str(lease_time_ip)) # IP lease time
-	DHCPOptions5 = bytes([54, 4]) + s.inet_aton(dhcp_ip) # DHCP server
+	DHCPOptions2 = bytes([1, 4]) + s.inet_aton(DHCP_MASK_IP) # Subnet mask
+	DHCPOptions3 = bytes([3, 4]) + s.inet_aton(ROUTER_IP) # Router
+	DHCPOptions4 = bytes([51, 4]) + s.inet_aton(str(LEASE_TIME_IP)) # IP lease time
+	DHCPOptions5 = bytes([54, 4]) + s.inet_aton(DHCP_IP) # DHCP server
 
 	data_to_send = b""
 
@@ -147,7 +152,7 @@ def dhcp_ack(data, addr, ip):
 	value[dhcp_format[6]['field']] = b'\x00\x00' # flags
 	value[dhcp_format[7]['field']] = data[7]['ciaddr'] # ciaddr
 	value[dhcp_format[8]['field']] = s.inet_aton(ip) # yiaddr
-	value[dhcp_format[9]['field']] = s.inet_aton(dhcp_ip) # siaddr
+	value[dhcp_format[9]['field']] = s.inet_aton(DHCP_IP) # siaddr
 	value[dhcp_format[10]['field']] = data[10]['giaddr'] # giaddr
 	value[dhcp_format[11]['field']] = data[11]['chaddr'] # chaddr
 	value[dhcp_format[12]['field']] = bytearray(64) # sname
@@ -155,10 +160,10 @@ def dhcp_ack(data, addr, ip):
 
 	magic_cookie = s.inet_aton('99.130.83.99') # Default value
 	DHCPOptions1 = bytes([53, 1, 5]) # => option 53, length 1, DHCP Ack
-	DHCPOptions2 = bytes([1, 4]) + s.inet_aton(subnet_mask_ip) # Subnet mask
-	DHCPOptions3 = bytes([3, 4]) + s.inet_aton(router_ip) # Router
-	DHCPOptions4 = bytes([51, 4]) + s.inet_aton(str(lease_time_ip)) # IP lease time
-	DHCPOptions5 = bytes([54, 4]) + s.inet_aton(dhcp_ip) # DHCP server
+	DHCPOptions2 = bytes([1, 4]) + s.inet_aton(DHCP_MASK_IP) # Subnet mask
+	DHCPOptions3 = bytes([3, 4]) + s.inet_aton(ROUTER_IP) # Router
+	DHCPOptions4 = bytes([51, 4]) + s.inet_aton(str(LEASE_TIME_IP)) # IP lease time
+	DHCPOptions5 = bytes([54, 4]) + s.inet_aton(DHCP_IP) # DHCP server
 	data_to_send = b""
 
 	for val in value.values():
@@ -237,40 +242,53 @@ def check_ip_avaibility(ip):
 	Function to check if ip is available.
 	"""
 
-def config_serveur():
-	print("configuring the serveur")
-	config_file = open("conf.txt", 'r')
-	file_content = config_file.readlines()
-	print(file_content)
-	serveur_params = {}
-	for item in file_content:
-		x,y = item.split(':')
-		serveur_params[x] = y[:-1]
-	print(serveur_params)
-	config_file.close()
-
-def handle_client():
-	while True:
-		data, addr = server.recvfrom(2048) # DHCP DISCOVER OR REQUEST
-		print(f"Server has received:\n{data}\n")
-
-		decoded_data = data_decoder(data)
-		#print(f"{decoded_data}\n")
-
-		#options_reader(decoded_data)
-		msg_type = check_message_type(decoded_data)
-		if msg_type == 1:
-			resp_data = dhcp_offer(decoded_data, addr, client_ip) # DHCP OFFER
-			log_update(f"DISCOVER:\n{str(data)}\n")
-			log_update(f"OFFER:\n{str(resp_data)}\n")
-		elif msg_type == 3:
-			resp_data = dhcp_ack(decoded_data, addr, client_ip) # DHCP ACK
-			log_update(f"REQUEST:\n{str(data)}\n")
-			log_update(f"ACK:\n{str(resp_data)}\n")
-
 def log_update(data):
 	f = open("log_file", "a+")
 	f.write(data)
 	f.close()
- 
-handle_client()
+
+def handle_client(data, addr, client_ip):
+	print(f"Server has received:\n{data}\n")
+
+	decoded_data = data_decoder(data)
+	#print(f"{decoded_data}\n")
+
+	#options_reader(decoded_data)
+	msg_type = check_message_type(decoded_data)
+	if msg_type == 1:
+		resp_data = dhcp_offer(decoded_data, addr, client_ip) # DHCP OFFER
+		log_update(f"DISCOVER:\n{str(data)}\n")
+		log_update(f"OFFER:\n{str(resp_data)}\n")
+	elif msg_type == 3:
+		resp_data = dhcp_ack(decoded_data, addr, client_ip) # DHCP ACK
+		log_update(f"REQUEST:\n{str(data)}\n")
+		log_update(f"ACK:\n{str(resp_data)}\n")
+	
+def start():
+	while True:
+		data, addr = server.recvfrom(2048) # DHCP DISCOVER OR REQUEST
+		generated_ip = random_ip_generator(CLIENT_FIRST_ADDR, CLIENT_last_ADDR)
+		Thread(target=handle_client(data, addr, generated_ip))
+
+# Configurating DHCP server
+config = config_server()
+DHCP_IP = config['network_addr']
+DHCP_MASK_IP = config['network_mask']
+CLIENT_FIRST_ADDR = config['client_first_addr']
+CLIENT_last_ADDR = config['client_last_addr']
+ROUTER_IP = config['router_ip']
+target_ip = config['broadcast_ip']
+LEASE_TIME_IP = config['client_lease_time']
+
+# Check information
+print(f'Server Configuration:\n')
+print(f'Server dhcp IP:{DHCP_IP}')
+print(f'Server subnet mask IP:{DHCP_MASK_IP}')
+print(f'Server client first IP:{CLIENT_FIRST_ADDR}')
+print(f'Server client last IP:{CLIENT_last_ADDR}')
+print(f'Server router IP:{ROUTER_IP}')
+print(f'Server target(broadcast) IP:{target_ip}')
+print(f'Server lease time IP:{LEASE_TIME_IP}\n')
+
+# Starts DHCP server
+start()
