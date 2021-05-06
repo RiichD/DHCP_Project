@@ -186,8 +186,8 @@ def dhcp_ack(data, addr, ip):
 
 	print(f"Data to send:\n{data_to_send}\n")
 	ip_state_list[ip]['busy'] = True
-	ip_state_list['mac_adress'] = str(data[11]['chaddr'])
-	ip_state_list['lease_time'] = t.time()
+	ip_state_list[ip]['client_mac'] = str(data[11]['chaddr'])
+	ip_state_list[ip]['lease_time'] = t.time()
 	server.sendto(data_to_send, (target_ip, 68))
 	server.sendto(data_to_send, addr)
 	print(f"DHCP Ack data sent to:{addr}\n")
@@ -309,8 +309,8 @@ def start():
 	while True:
 		data, addr = server.recvfrom(2048) # DHCP DISCOVER OR REQUEST
 		selected_ip = ip_selection(ip_state_list)
-		generated_ip = random_ip_generator(CLIENT_FIRST_ADDR, CLIENT_LAST_ADDR)
-		th.Thread(target=handle_client(data, addr, generated_ip))
+		#generated_ip = random_ip_generator(CLIENT_FIRST_ADDR, CLIENT_LAST_ADDR)
+		th.Thread(target=handle_client(data, addr, selected_ip))
 
 def ips(start, end):
     import socket, struct

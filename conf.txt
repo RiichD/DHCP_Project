@@ -2,7 +2,7 @@ network_addr:192.168.102.0
 network_mask:255.255.255.0
 client_first_addr:192.168.102.100
 client_last_addr:192.168.102.200
-client_lease_time:86400
+client_lease_time:30
 router_ip:192.168.102.5
 broadcast_ip:192.168.102.0
 #dns_addr:192.135.1.21, 192.135.1.22, 192.135.1.23
