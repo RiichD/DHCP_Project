@@ -1,9 +1,11 @@
+#!/bin/python3
+
 import socket as s
 import time as t
 import struct
 import random as r
 import threading as th
-
+import json
 #<!> DO NOT CHANGE VALUE BELOW <!>
 serverIP = ""
 serverPort = 67
@@ -24,12 +26,16 @@ LEASE_TIME_IP = -1
 
 log_lock = th.Lock() # Lock for log_update()
 
+ip_state_list = {}
+'''examples
 ip_state_list = {
-	'192.168.102.201':{'busy':False},
-	'192.168.102.202':{'busy':True, {'client_mac':'0099887766', 'lease_time':768}},
-	'192.168.102.203':{'busy':False},
-	'192.168.102.204':{'busy':True, {'client_mac':'0011223344', 'lease_time':20}}
-}
+	'192.168.102.201':{'busy':False, 'client_mac':'00000000', 'lease_time':0},
+	'192.168.102.202':{'busy':True, 'client_mac':'0099887766', 'lease_time':768},
+	'192.168.102.203':{'busy':False, 'client_mac':'00000000', 'lease_time':0},
+	'192.168.102.204':{'busy':True, 'client_mac':'0011223344', 'lease_time':20}
+}'''
+
+
 
 """
 DHCP Format length in byte.
@@ -81,7 +87,7 @@ def config_server():
 		server_params[x] = y[:-1] # Remove newline
 	config_file.close()
 	return server_params
-	
+
 def data_decoder(data):
 	"""
 	Function to decode data depending on dhcp_format.
@@ -179,9 +185,14 @@ def dhcp_ack(data, addr, ip):
 	data_to_send += bytes([255])
 
 	print(f"Data to send:\n{data_to_send}\n")
+	ip_state_list[ip]['busy'] = True
+	ip_state_list['mac_adress'] = str(data[11]['chaddr'])
+	ip_state_list['lease_time'] = t.time()
 	server.sendto(data_to_send, (target_ip, 68))
 	server.sendto(data_to_send, addr)
 	print(f"DHCP Ack data sent to:{addr}\n")
+
+
 	return data_to_send
 
 def check_message_type(data):
@@ -223,6 +234,15 @@ def options_reader(data):
 			b_pos += 1
 		print(result)
 
+def ip_selection(ip_state_list):
+	"""
+	Function that select an ip address that is available
+	"""
+	for ip_adress in ip_state_list:
+		if not ip_state_list[ip_adress]['busy']:
+			return ip_adress
+	return ''
+
 def random_ip_generator(first, last):
 	"""
 	Function that generates ip between the lowest and the highest.
@@ -232,10 +252,6 @@ def random_ip_generator(first, last):
 	print(f"Random IP between {first} and {last}: {ip}\n")
 	return ip
 
-def check_ip_avaibility(ip):
-	"""
-	Function to check if ip is available.
-	"""
 
 def log_update(data):
 	log_lock.acquire()
@@ -243,6 +259,12 @@ def log_update(data):
 	f.write(data)
 	f.close()
 	log_lock.release()
+
+def log_database_update():
+	f = open("database.txt", "w")
+	f.write(json.dumps(ip_state_list))
+	f.close()
+
 
 def handle_client(data, addr, client_ip):
 	print(f"Server received:\n{data}\n")
@@ -256,21 +278,19 @@ def handle_client(data, addr, client_ip):
 	elif msg_type == 3:
 		print("REQUEST message\n")
 		resp_data = dhcp_ack(decoded_data, addr, client_ip) # DHCP ACK
+		log_database_update()
 		log_update(f"REQUEST:\n{str(data)}\n")
 		log_update(f"ACK:\n{str(resp_data)}\n")
-	
-def start():
-	while True:
-		data, addr = server.recvfrom(2048) # DHCP DISCOVER OR REQUEST
-		generated_ip = random_ip_generator(CLIENT_FIRST_ADDR, CLIENT_last_ADDR)
-		th.Thread(target=handle_client(data, addr, generated_ip))
+
+
+
 
 # Configurating DHCP server
 config = config_server()
 DHCP_IP = config['network_addr']
 DHCP_MASK_IP = config['network_mask']
 CLIENT_FIRST_ADDR = config['client_first_addr']
-CLIENT_last_ADDR = config['client_last_addr']
+CLIENT_LAST_ADDR = config['client_last_addr']
 ROUTER_IP = config['router_ip']
 target_ip = config['broadcast_ip']
 LEASE_TIME_IP = config['client_lease_time']
@@ -280,10 +300,31 @@ print(f'Server Configuration:\n')
 print(f'Server dhcp IP:{DHCP_IP}')
 print(f'Server subnet mask IP:{DHCP_MASK_IP}')
 print(f'Server client first IP:{CLIENT_FIRST_ADDR}')
-print(f'Server client last IP:{CLIENT_last_ADDR}')
+print(f'Server client last IP:{CLIENT_LAST_ADDR}')
 print(f'Server router IP:{ROUTER_IP}')
 print(f'Server target(broadcast) IP:{target_ip}')
 print(f'Server lease time IP:{LEASE_TIME_IP}\n')
+
+def start():
+	while True:
+		data, addr = server.recvfrom(2048) # DHCP DISCOVER OR REQUEST
+		selected_ip = ip_selection(ip_state_list)
+		generated_ip = random_ip_generator(CLIENT_FIRST_ADDR, CLIENT_LAST_ADDR)
+		th.Thread(target=handle_client(data, addr, generated_ip))
+
+def ips(start, end):
+    import socket, struct
+    start = struct.unpack('>I', socket.inet_aton(start))[0]
+    end = struct.unpack('>I', socket.inet_aton(end))[0]
+    return [socket.inet_ntoa(struct.pack('>I', i)) for i in range(start, end)]
+
+
+# Initialization of the ip
+
+adresses = ips(CLIENT_FIRST_ADDR, CLIENT_LAST_ADDR)
+
+for adress in adresses:
+	ip_state_list[adress] = {'busy':False, "client_mac":'', 'lease_time':''}
 
 # Starts DHCP server
 start()
