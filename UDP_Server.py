@@ -46,22 +46,22 @@ dhcp_format = [
 ]
 
 dhcp_options = {
-	'option_0':{'name':'padding', 'type': hex},
-	'option_1':{'name':'subnet_mask', 'type': hex}, #IP
-	'option_3':{'name':'router_ip', 'type': hex}, #IP
-	'option_6':{'name':'domain_name_server', 'type': hex}, #IP
-	'option_12':{'name':'hostname', 'type': str},
-	'option_15':{'name':'domain_name', 'type': str},
-	'option_28':{'name':'broadcast_address', 'type': hex}, #IP
-	'option_50':{'name':'requested_ip_address', 'type': hex}, #IP
-	'option_51':{'name':'ip_address_lease_time', 'type': int},
-	'option_53':{'name':'dhcp_message_type', 'type': int},
-	'option_54':{'name':'dhcp_server_identifier', 'type': hex}, #IP
-	'option_57':{'name':'maximum_dhcp_message_size', 'type': int},
-	'option_58':{'name':'renewal_time_value', 'type': int},
-	'option_59':{'name':'rebinding_time_value', 'type': int},
-	'option_61':{'name':'client_id', 'type': hex}, #MAC
-	'option_255':{'name':'end', 'type': int}
+	'option_0':{'id':0, 'name':'padding', 'type': hex},
+	'option_1':{'id':1, 'name':'subnet_mask', 'type': hex}, #IP
+	'option_3':{'id':3, 'name':'router_ip', 'type': hex}, #IP
+	'option_6':{'id':6, 'name':'domain_name_server', 'type': hex}, #IP
+	'option_12':{'id':12, 'name':'hostname', 'type': str},
+	'option_15':{'id':15, 'name':'domain_name', 'type': str},
+	'option_28':{'id':28, 'name':'broadcast_address', 'type': hex}, #IP
+	'option_50':{'id':50, 'name':'requested_ip_address', 'type': hex}, #IP
+	'option_51':{'id':51, 'name':'ip_address_lease_time', 'type': int},
+	'option_53':{'id':53, 'name':'dhcp_message_type', 'type': int},
+	'option_54':{'id':54, 'name':'dhcp_server_identifier', 'type': hex}, #IP
+	'option_57':{'id':57, 'name':'maximum_dhcp_message_size', 'type': int},
+	'option_58':{'id':58, 'name':'renewal_time_value', 'type': int},
+	'option_59':{'id':59, 'name':'rebinding_time_value', 'type': int},
+	'option_61':{'id':61, 'name':'client_id', 'type': hex}, #MAC
+	'option_255':{'id':255, 'name':'end', 'type': int}
 }
 
 def config_server():
