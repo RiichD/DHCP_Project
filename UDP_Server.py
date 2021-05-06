@@ -14,13 +14,13 @@ server.setsockopt(s.SOL_SOCKET, s.SO_BROADCAST, 1) # Broadcast
 server.bind((serverIP, serverPort))
 print("server (" +  serverIP + "," + str(serverPort) + ") ready")
 
-DHCP_IP = ""#"192.168.102.5"
-DHCP_MASK_IP = ""#"255.255.255.0"
-CLIENT_FIRST_ADDR = ""#"192.168.102.100"
-CLIENT_last_ADDR = ""#"192.168.102.200"
-target_ip = ""#"192.168.102.0" # Broadcast IP
-ROUTER_IP = ""#"192.168.102.5"
-LEASE_TIME_IP = -1#86400
+DHCP_IP = ""
+DHCP_MASK_IP = ""
+CLIENT_FIRST_ADDR = ""
+CLIENT_last_ADDR = ""
+target_ip = "" # Broadcast IP
+ROUTER_IP = ""
+LEASE_TIME_IP = -1
 
 log_lock = th.Lock()
 
