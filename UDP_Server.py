@@ -2,7 +2,7 @@ import socket as s
 import time as t
 import struct
 import random as r
-from threading import *
+import threading as th
 
 #<!> DO NOT CHANGE VALUE BELOW <!>
 serverIP = ""
@@ -14,15 +14,15 @@ server.setsockopt(s.SOL_SOCKET, s.SO_BROADCAST, 1) # Broadcast
 server.bind((serverIP, serverPort))
 print("server (" +  serverIP + "," + str(serverPort) + ") ready")
 
-# Value below can be changed
 DHCP_IP = ""#"192.168.102.5"
 DHCP_MASK_IP = ""#"255.255.255.0"
-#client_ip = "192.168.102.50"
 CLIENT_FIRST_ADDR = ""#"192.168.102.100"
 CLIENT_last_ADDR = ""#"192.168.102.200"
 target_ip = ""#"192.168.102.0" # Broadcast IP
 ROUTER_IP = ""#"192.168.102.5"
 LEASE_TIME_IP = -1#86400
+
+log_lock = th.Lock()
 
 """
 DHCP Format length in byte.
@@ -243,9 +243,11 @@ def check_ip_avaibility(ip):
 	"""
 
 def log_update(data):
+	log_lock.acquire()
 	f = open("log_file", "a+")
 	f.write(data)
 	f.close()
+	log_lock.release()
 
 def handle_client(data, addr, client_ip):
 	print(f"Server has received:\n{data}\n")
@@ -268,7 +270,7 @@ def start():
 	while True:
 		data, addr = server.recvfrom(2048) # DHCP DISCOVER OR REQUEST
 		generated_ip = random_ip_generator(CLIENT_FIRST_ADDR, CLIENT_last_ADDR)
-		Thread(target=handle_client(data, addr, generated_ip))
+		th.Thread(target=handle_client(data, addr, generated_ip))
 
 # Configurating DHCP server
 config = config_server()
