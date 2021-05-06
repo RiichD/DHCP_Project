@@ -25,8 +25,12 @@ ROUTER_IP = ""
 LEASE_TIME_IP = -1
 
 log_lock = th.Lock() # Lock for log_update()
+log_database = th.Lock() # Lock for log_database_update()
 
 ip_state_list = {} # List that contains every IP
+
+# Value below can be changed
+config_file_name = "conf.txt"
 
 """
 DHCP Format length in byte.
@@ -68,9 +72,12 @@ dhcp_options = {
 	'option_255':{'id':255, 'name':'end', 'type': int}
 }
 
+"""
+DHCP Server configuration
+"""
 def config_server():
 	print("Configuring server")
-	config_file = open("conf.txt", 'r')
+	config_file = open(config_file_name, 'r')
 	file_content = config_file.readlines()
 	server_params = {}
 	for item in file_content:
@@ -79,6 +86,9 @@ def config_server():
 	config_file.close()
 	return server_params
 
+"""
+Data reader
+"""
 def data_decoder(data):
 	"""
 	Function to decode data depending on dhcp_format.
@@ -96,11 +106,7 @@ def data_decoder(data):
 		b_pos+=dhcp_f['length']
 	return decoded_data
 
-def options_translator(opt):
-	if opt['id'] == 50:
-		return opt['data'].replace(' ', '.')
-
-def options_reader(data):
+def options_decoder(data):
 	opt_data = data[14]['options']
 
 	b_pos = 4 # Starts at 4 to ignore magic cookie
@@ -124,6 +130,32 @@ def options_reader(data):
 		decoded_option['option_'+str(opt)] = {'id':opt, 'length':opt_len, 'data':result}
 	return decoded_option
 
+def options_translator(opt):
+	if opt['id'] == 50:
+		return opt['data'].replace(' ', '.')
+
+def check_message_type(data):
+	"""
+	Function to check message type (DISCOVER, OFFER, REQUEST, ACK).
+	Return :
+	1 for DISCOVER
+	2 for OFFER
+	3 for REQUEST
+	5 for ACK
+	"""
+	options = data[14]['options']
+	if options[6:7].hex() == '01':
+		return 1
+	elif options[6:7].hex() == '02':
+		return 2
+	elif options[6:7].hex() == '03':
+		return 3
+	elif options[6:7].hex() == '05':
+		return 5
+
+"""
+DHCP Services
+"""
 def dhcp_offer(data, addr, ip):
 	value = {}
 	value[dhcp_format[0]['field']] = b'\x02' # op_code
@@ -178,7 +210,7 @@ def dhcp_ack(data, addr, ip):
 	value[dhcp_format[6]['field']] = b'\x00\x00' # flags
 	value[dhcp_format[7]['field']] = data[7]['ciaddr'] # ciaddr
 	
-	requested_ip = options_translator(options_reader(data)['option_50'])
+	requested_ip = options_translator(options_decoder(data)['option_50'])
 	print(f"Client requested: {requested_ip}\n")
 	if not ip_state_list[requested_ip]['busy']:
 		print(f"{requested_ip} accepted!\n")
@@ -221,25 +253,6 @@ def dhcp_ack(data, addr, ip):
 	print(f"DHCP Ack data sent to:{addr}\n")
 	return data_to_send
 
-def check_message_type(data):
-	"""
-	Function to check message type (DISCOVER, OFFER, REQUEST, ACK).
-	Return :
-	1 for DISCOVER
-	2 for OFFER
-	3 for REQUEST
-	5 for ACK
-	"""
-	options = data[14]['options']
-	if options[6:7].hex() == '01':
-		return 1
-	elif options[6:7].hex() == '02':
-		return 2
-	elif options[6:7].hex() == '03':
-		return 3
-	elif options[6:7].hex() == '05':
-		return 5
-
 def ip_selection(ip_state_list):
 	"""
 	Function that select an ip address that is available
@@ -251,13 +264,24 @@ def ip_selection(ip_state_list):
 
 def random_ip_generator(first, last):
 	"""
-	Function that generates ip between the lowest and the highest.
+	Function that generates ip between the first and the last.
 	"""
 	interval = r.randint(int(s.inet_aton(first).hex(), 16), int(s.inet_aton(last).hex(), 16))
 	ip = s.inet_ntoa(s.inet_aton(hex(interval)))
 	print(f"Random IP between {first} and {last}: {ip}\n")
 	return ip
 
+def ips(start, end):
+	"""
+	Function that generates ip between start and end
+	"""
+	start = st.unpack('>I', s.inet_aton(start))[0]
+	end = st.unpack('>I', s.inet_aton(end))[0]
+	return [s.inet_ntoa(st.pack('>I', i)) for i in range(start, end)]
+
+"""
+DHCP Updates
+"""
 def log_update(data):
 	log_lock.acquire()
 	f = open("log_file", "a+")
@@ -266,15 +290,20 @@ def log_update(data):
 	log_lock.release()
 
 def log_database_update():
+	log_database.acquire()
 	f = open("database.txt", "w")
 	f.write(json.dumps(ip_state_list))
 	f.close()
+	log_database.release()
 
+"""
+Else
+"""
 def handle_client(data, addr, client_ip):
 	print(f"Server received:\n{data}\n")
 	decoded_data = data_decoder(data)
 	msg_type = check_message_type(decoded_data)
-	options_reader(decoded_data)
+	options_decoder(decoded_data)
 	if msg_type == 1:
 		print("DISCOVER message\n")
 		resp_data = dhcp_offer(decoded_data, addr, client_ip) # DHCP OFFER
@@ -287,6 +316,16 @@ def handle_client(data, addr, client_ip):
 		log_update(f"REQUEST:\n{str(data)}\n")
 		log_update(f"ACK:\n{str(resp_data)}\n")
 
+def start():
+	while True:
+		data, addr = server.recvfrom(2048) # DHCP DISCOVER OR REQUEST
+		selected_ip = ip_selection(ip_state_list)
+		#generated_ip = random_ip_generator(CLIENT_FIRST_ADDR, CLIENT_LAST_ADDR)
+		th.Thread(target=handle_client(data, addr, selected_ip))
+
+"""
+MAIN
+"""
 # Configurating DHCP server
 config = config_server()
 DHCP_IP = config['network_addr']
@@ -307,23 +346,11 @@ print(f'Server router IP:{ROUTER_IP}')
 print(f'Server target(broadcast) IP:{TARGET_IP}')
 print(f'Server lease time IP:{LEASE_TIME_IP}\n')
 
-def start():
-	while True:
-		data, addr = server.recvfrom(2048) # DHCP DISCOVER OR REQUEST
-		selected_ip = ip_selection(ip_state_list)
-		#generated_ip = random_ip_generator(CLIENT_FIRST_ADDR, CLIENT_LAST_ADDR)
-		th.Thread(target=handle_client(data, addr, selected_ip))
+if DHCP_IP == '' or DHCP_MASK_IP == '' or CLIENT_FIRST_ADDR == '' or CLIENT_LAST_ADDR == '' or ROUTER_IP == '' or TARGET_IP == '' or LEASE_TIME_IP == -1:
+	print(f"Your file {config_file_name} is not well structured, please modify it.\n")
 
-def ips(start, end):
-    start = st.unpack('>I', s.inet_aton(start))[0]
-    end = st.unpack('>I', s.inet_aton(end))[0]
-    return [s.inet_ntoa(st.pack('>I', i)) for i in range(start, end)]
-
-
-# Initialization of the ip
-
+# IP initialization
 adresses = ips(CLIENT_FIRST_ADDR, CLIENT_LAST_ADDR)
-
 for address in adresses:
 	ip_state_list[address] = {'busy':False, "client_mac":'', 'lease_time':''}
 
