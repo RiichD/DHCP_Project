@@ -214,7 +214,9 @@ def dhcp_ack(data, addr, ip):
 		print("Should be option 50 in the packet")
 		requested_ip = options_translator(options_decoder(data)['option_50'])
 		print(f"Client requested: {requested_ip}\n")
+
 		if not ip_state_list[requested_ip]['busy'] or ip_state_list[requested_ip]['client_mac'] == str(data[11]['chaddr']):
+
 			print(f"{requested_ip} accepted!\n")
 			value[dhcp_format[8]['field']] = s.inet_aton(requested_ip) # yiaddr
 		else:
