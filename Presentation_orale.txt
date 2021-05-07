@@ -1,0 +1,107 @@
+PASCAL :
+Intro : Un serveur DHCP permet de procéder automatiquement à la configuration des IP aux postes dans le même réseau local.
+- Explication des fichiers présents dans le répertoire
+
+- Richard -> dhcp format, options format, construction des paquets dhcp(discover, offer, etc) (dont qques options),
+types de requetes du client, décodages des trames, génération d'ip aléatoire, Log (locks)
+
+Gabriel -> config, Gestion d'état ip, bail(option 50), database, sélection d'ip (linéaire?)
+
+Pascal -> DNS (option)
+
+- Richard -> Démonstration (avec affection d'ip)
+
+------------------------------------------------
+Bonjour, 
+Je me présente je suis CHEN Pascal, nous sommes le groupe 2, notre groupe est composé de M. Richard Diep, Gabriel Cao et moi 
+Dans un premier temps, j'aimerais commencer par présenter notre projet routage qui consiste à réaliser un serveur DHCP en python.
+Le serveur DHCP permet de procéder automatiquement à la configuration des IP aux postes qui se situe dans le même réseau.
+Notre serveur DHCP utilise un mécanisme de client-serveur, notre serveur permet de gérer et stocker les informations de configuration des clients.
+Donc, je vais présenter un peu l’architecture de notre DHCP
+ 
+1) Lors d’un démarrage ou d’une initialisation d’un poste client, 
+les postes équipés d’une carte réseau diffuse un datagramme DHCPDISCOVER en UDP sur tout le réseau, s’adressant au port 67.
+
+2) Un serveur DHCP ayant reçu le datagramme, émet un datagramme DHCP OFFER avec l’adresse IP du serveur,
+l’adresse IP, le masque de sous-réseau et les options, s’adressant au port 68
+
+3) En retour le client renvoie une requête DHCPREQUEST sur l’adresse IP fourni dans le DHCP OFFER
+
+4) Et pour finir le serveur DHCP prépare un paquet d’accusé de réception afin de fixer l’adresse IP,
+le masque de sous-réseau, ainsi que toutes les autres options.
+
+-----
+
+Bonjour, je suis DIEP Richard et je suis chargé de réaliser le format des trames DHCP ainsi que quelques options essentielles.
+
+Tout d'abord, le serveur codé utilise la librarie socket qui permet de recevoir les données sur une IP et un port donné, ici le port est le numéro 67.
+
+Pour mieux visualiser le format des messages DHCP, une liste de dictionnaire est crée et comprend:
+- un champ qui représente les différents types dans une trame DHCP
+- le nom complet
+- la longueur en octet
+- et le type
+
+Dans le cas des options, puisque les options ne sont pas forcément dans le même ordre,
+un dictionnaire est utilisé avec l'option adéquat pour un accès plus rapide aux données.
+
+Ensuite, le server DHCP a besoin de savoir de quel type de requête le client envoie entre un DISCOVER et un REQUEST. 
+La fonction check_message_type() permet de connaître le type de message.
+
+Pour le premier cas, le serveur envoie un DHCP Offer avec la fonction dhcp_offer().
+Les champs de la trame sont remplies de façon adéquates sur le port 68 pour que le client reçoive la réponse du serveur ainsi que l'ip proposée.
+
+Dans le second cas, suite à un REQUEST, 
+le serveur répond par un DHCP Ack avec la fonction dhcp_ack() qui va vérifier s'il est possible de fournir au client l'ip qu'il demande.
+Cette ip demandée par le client se trouve dans l'option 50.
+Dans le cas contraire, le serveur lui fournit une ip générée aléatoirement dans la plage indiquée avec la fonction ip_selection().
+
+Certaines options sont aussi présentes dans les trames qu'on envoie:
+- l'option 53 permet d'indiquer le type de message, entre DISCOVER, OFFER, REQUEST, ACK
+- l'option 1 contient le masque de sous-réseau
+- l'option 3 permet d'indiquer l'ip du router par défaut (donc le gateway)
+- l'option 51 représente la durée du bail
+- l'option 54 correspond à l'ip du server DHCP
+- l'option 28 contient l'ip de broadcast
+
+Pour décoder les informations reçues des clients, deux fonctions sont disponibles:
+- le data_decoder() qui permet de retourner une liste de dictionnaire respectant le format des trames DHCP que nous avons vus plus tôt.
+- l'options_decoder() qui permet de retourner un dictionnaire avec toutes les options, longueurs des données et les données correspondantes.
+
+Enfin, un log est disponible nommé log_file.txt et qui va contenir toutes les trames que le serveur reçoit et envoie.
+Un lock est utilisé pour s'assurer que le fichier est cohérent lorsque plusieurs threads tentent d'écrire.
+
+-----
+
+Bonjour, Je suis Gabriel CAO et je suis chargé de différentes taches dans ce projet, tout d'abord la paramétrisation du serveur
+pour cela, j'ai tout d'abord créer un fichier de configuration que l'utilisateur devra modifier tel qu'il veut que le serveur DHCP fonctionne a son gré. 
+Ce fichier de configuration permettra au serveur de connaitre la plage d'adresse IP qu'il pourra utiliser, la durée du bail, l'adresse du réseau, le masque etc..
+Dans le programme ce sera la fonction config_server qui permettra d'utiliser ce fichier pour configurer le serveur, 
+cette fonction lira le fichier dans sa totalité et mettra dans les variables les différents paramètres utiles au serveur.
+
+Notre serveur DHCP doit donc distribuer des adresses IP à des clients. 
+Il m'a fallu donc tout d'abord générer la liste des adresse IP que le serveur DHCP peut distribuer à l'aide 
+du paramètre des possibilités d'adresses IP présent dans le fichier du configuration. 
+A partir de cette liste, j'ai crée un dictionnaire dont les clés seraient les adresses IP à distribué et 
+la valeur associé est un dictionnaire permettant de savoir si l'adresse IP est utilisé par un client avec une variable booléenne nommé busy, 
+l'adresse MAC du client qui utilise cette adresse et la date à laquelle le serveur a accordé l'adresse IP aux clients. Pourquoi ce dictionnaire ?
+ Tout d'abord j'ai utilisé une structure de dictionnaire car la complexité pour connaitre les infotmations sur une adresse IP est en O(1). 
+Le serveur DHCP utilisera de manière permanente ce dictionnaire pour fournir une adresse IP libre au client. 
+
+J'ai été également en charge de la gestion du bail des adresses IP, 
+comme on le sait, une adresse IP est fourni par le serveur pour une durée fini afin d'éviter une pénurie d'adresse IP.
+Plusieurs cas peuvent arriver, cependant au vu des difficultés de codage, j'ai été contraint de simplifier le problème, 
+le serveur DHCP de notre projet ne libérera immédiatemment une adresse IP meme si le bail est écoulé.
+Ce n'est que lorsque la variable busy de chaque adresse IP présent dans le dictionnaire est à True, 
+ce qui signifie que toutes les adresses semblent occup"s, qu'on essaie de liberer des adresses IP en vérifiant si le bail associé est écoulé. 
+Le client peut également demander une prolongation du bail, ce type de requete est identifié lorsque le champ ciaddr est différent de 0.0.0.0 
+
+L'utilisateur pourra connaitre l'état du service c'est à dire les informations sur les adresses IP dans le fichier database.txt.
+
+-----
+
+A la fin : 
+    Donc je me représente encore une fois, je suis CHEN Pascal, je suis chargé de completer les options manquantes du DNS, 
+comme les IP du dns primaire et secondaire et l’option nom du dns.
+Pour coder la conversion du nom de domaine en hexadécimal, j’ai utilisé la fonction string_to_byte().
+Le string_to_byte permet de convertir le string en unicode puis en hexadécimal.
