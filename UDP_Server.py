@@ -262,13 +262,31 @@ def dhcp_ack(data, addr, ip):
 	print(f"DHCP Ack data sent to:{addr}\n")
 	return data_to_send
 
-def ip_selection(ip_state_list):
+def ip_selection(ip_state_list, randomize):
 	"""
 	Function that select an ip address that is available
 	"""
-	for ip_address in ip_state_list:
-		if not ip_state_list[ip_address]['busy']:
-			return ip_address
+	if randomize:
+		ip_address = random_ip_generator(CLIENT_FIRST_ADDR, CLIENT_LAST_ADDR)
+		
+		# Checks if an IP is available
+		available = False
+		for ip_addr in ip_state_list:
+			if not ip_state_list[ip_addr]['busy']:
+				available = True
+				break
+		if not available:
+			return ''
+		
+		# Random IP
+		while ip_state_list[ip_address]['busy']:
+			ip_address = random_ip_generator(CLIENT_FIRST_ADDR, CLIENT_LAST_ADDR)
+		print(f"Random IP between {CLIENT_FIRST_ADDR} and {CLIENT_LAST_ADDR}: {ip_address}\n")
+		return ip_address
+	else:
+		for ip_address in ip_state_list:
+			if not ip_state_list[ip_address]['busy']:
+				return ip_address
 	return ''
 
 def random_ip_generator(first, last):
@@ -277,7 +295,6 @@ def random_ip_generator(first, last):
 	"""
 	interval = r.randint(int(s.inet_aton(first).hex(), 16), int(s.inet_aton(last).hex(), 16))
 	ip = s.inet_ntoa(s.inet_aton(hex(interval)))
-	print(f"Random IP between {first} and {last}: {ip}\n")
 	return ip
 
 def ips(start, end):
@@ -324,6 +341,7 @@ def handle_client(data, addr, client_ip):
 		log_database_update()
 		log_update(f"REQUEST:\n{str(data)}\n")
 		log_update(f"ACK:\n{str(resp_data)}\n")
+
 def clear_ip_state_list():
 	for ip in ip_state_list:
 		if ip_state_list[ip]['lease_time'] - LEASE_TIME_IP <= 0:
@@ -334,16 +352,16 @@ def start():
 		data, addr = server.recvfrom(2048) # DHCP DISCOVER OR REQUEST
 		selected_ip = '0.0.0.0'
 		try:
-			selected_ip = ip_selection(ip_state_list)
+			selected_ip = ip_selection(ip_state_list, True)
 		except Exception:
 			clear_ip_state_list()
 			try:
-				selected_ip = ip_selection(ip_state_list)
+				selected_ip = ip_selection(ip_state_list, True)
+				print("Selected ip : ", selected_ip)
 			except Exception as e:
-				print("no ip available")
+				print("No ip available")
 
 		if selected_ip != '0.0.0.0':
-		#generated_ip = random_ip_generator(CLIENT_FIRST_ADDR, CLIENT_LAST_ADDR)
 			th.Thread(target=handle_client(data, addr, selected_ip))
 """
 MAIN
@@ -374,7 +392,7 @@ if DHCP_IP == '' or DHCP_MASK_IP == '' or CLIENT_FIRST_ADDR == '' or CLIENT_LAST
 # IP initialization
 adresses = ips(CLIENT_FIRST_ADDR, CLIENT_LAST_ADDR)
 for address in adresses:
-	ip_state_list[address] = {'busy':False, "client_mac":'', 'lease_time':''}
+	ip_state_list[address] = {'busy':True, "client_mac":'', 'lease_time':''}
 
 # Starts DHCP server
 start()
