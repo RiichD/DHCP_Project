@@ -157,6 +157,7 @@ def check_message_type(data):
 DHCP Services
 """
 def dhcp_offer(data, addr, ip):
+	print(ip)
 	value = {}
 	value[dhcp_format[0]['field']] = b'\x02' # op_code
 	value[dhcp_format[1]['field']] = b'\x01' # htype
@@ -221,6 +222,7 @@ def dhcp_ack(data, addr, ip):
 			value[dhcp_format[8]['field']] = s.inet_aton(requested_ip) # yiaddr
 		else:
 			print(f"{requested_ip} refused! Server gives {ip}\n")
+			print("fnzifbzueifb",ip)
 			value[dhcp_format[8]['field']] = s.inet_aton(ip) # yiaddr
 	else:
 		print("No option 50, an ip is chosen by the dhcp server")
@@ -287,7 +289,7 @@ def ip_selection(ip_state_list, randomize):
 		for ip_address in ip_state_list:
 			if not ip_state_list[ip_address]['busy']:
 				return ip_address
-	return ''
+	return ""
 
 def random_ip_generator(first, last):
 	"""
@@ -344,24 +346,25 @@ def handle_client(data, addr, client_ip):
 
 def clear_ip_state_list():
 	for ip in ip_state_list:
-		if ip_state_list[ip]['lease_time'] - LEASE_TIME_IP <= 0:
+	
+		if (int(ip_state_list[ip]['lease_time']) - int(LEASE_TIME_IP) <= 0):
 			ip_state_list[ip]['busy'] = False
 			
 def start():
 	while True:
 		data, addr = server.recvfrom(2048) # DHCP DISCOVER OR REQUEST
-		selected_ip = '0.0.0.0'
-		try:
-			selected_ip = ip_selection(ip_state_list, True)
-		except Exception:
+		selected_ip = ""
+		
+		selected_ip = ip_selection(ip_state_list, True)
+		if selected_ip == "":
 			clear_ip_state_list()
-			try:
-				selected_ip = ip_selection(ip_state_list, True)
-				print("Selected ip : ", selected_ip)
-			except Exception as e:
+			selected_ip = ip_selection(ip_state_list, True)
+			print("Selected ip : ", selected_ip)
+			if selected_ip == "":
 				print("No ip available")
-
-		if selected_ip != '0.0.0.0':
+		
+		if selected_ip is not  None and selected_ip != '0.0.0.0' and selected_ip != '':			
+			print("The selected ip" , selected_ip)
 			th.Thread(target=handle_client(data, addr, selected_ip))
 """
 MAIN
@@ -392,7 +395,7 @@ if DHCP_IP == '' or DHCP_MASK_IP == '' or CLIENT_FIRST_ADDR == '' or CLIENT_LAST
 # IP initialization
 adresses = ips(CLIENT_FIRST_ADDR, CLIENT_LAST_ADDR)
 for address in adresses:
-	ip_state_list[address] = {'busy':True, "client_mac":'', 'lease_time':''}
+	ip_state_list[address] = {'busy':True, "client_mac":'', 'lease_time':0}
 
 # Starts DHCP server
 start()
