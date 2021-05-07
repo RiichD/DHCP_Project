@@ -269,8 +269,6 @@ def ip_selection(ip_state_list, randomize):
 	Function that select an ip address that is available
 	"""
 	if randomize:
-		ip_address = random_ip_generator(CLIENT_FIRST_ADDR, CLIENT_LAST_ADDR)
-		
 		# Checks if an IP is available
 		available = False
 		for ip_addr in ip_state_list:
@@ -281,6 +279,7 @@ def ip_selection(ip_state_list, randomize):
 			return ''
 		
 		# Random IP
+		ip_address = random_ip_generator(CLIENT_FIRST_ADDR, CLIENT_LAST_ADDR)
 		while ip_state_list[ip_address]['busy']:
 			ip_address = random_ip_generator(CLIENT_FIRST_ADDR, CLIENT_LAST_ADDR)
 		print(f"Random IP between {CLIENT_FIRST_ADDR} and {CLIENT_LAST_ADDR}: {ip_address}\n")
@@ -289,7 +288,7 @@ def ip_selection(ip_state_list, randomize):
 		for ip_address in ip_state_list:
 			if not ip_state_list[ip_address]['busy']:
 				return ip_address
-	return ""
+	return ''
 
 def random_ip_generator(first, last):
 	"""
@@ -359,12 +358,12 @@ def start():
 		if selected_ip == "":
 			clear_ip_state_list()
 			selected_ip = ip_selection(ip_state_list, True)
-			print("Selected ip : ", selected_ip)
+			print("Selected ip: ", selected_ip)
 			if selected_ip == "":
-				print("No ip available")
+				print("No ip available in the DHCP Server")
 		
-		if selected_ip is not  None and selected_ip != '0.0.0.0' and selected_ip != '':			
-			print("The selected ip" , selected_ip)
+		if selected_ip != '0.0.0.0' and selected_ip != '':			
+			print("Selected ip: ", selected_ip)
 			th.Thread(target=handle_client(data, addr, selected_ip))
 """
 MAIN
@@ -395,7 +394,7 @@ if DHCP_IP == '' or DHCP_MASK_IP == '' or CLIENT_FIRST_ADDR == '' or CLIENT_LAST
 # IP initialization
 adresses = ips(CLIENT_FIRST_ADDR, CLIENT_LAST_ADDR)
 for address in adresses:
-	ip_state_list[address] = {'busy':True, "client_mac":'', 'lease_time':0}
+	ip_state_list[address] = {'busy':False, "client_mac":'', 'lease_time':0}
 
 # Starts DHCP server
 start()
