@@ -335,7 +335,7 @@ def ips(start, end):
 	Function that generates ip between start and end
 	"""
 	start = st.unpack('>I', s.inet_aton(start))[0]
-	end = st.unpack('>I', s.inet_aton(end))[0]
+	end = st.unpack('>I', s.inet_aton(end))[0] + 1
 	return [s.inet_ntoa(st.pack('>I', i)) for i in range(start, end)]
 
 """
@@ -351,7 +351,8 @@ def log_update(data):
 def log_database_update():
 	log_database.acquire()
 	f = open("database.txt", "w")
-	f.write(json.dumps(ip_state_list))
+	for state in ip_state_list:
+		f.write(str(state)+ ': ' + str(ip_state_list[state]) + '\n')
 	f.close()
 	log_database.release()
 
