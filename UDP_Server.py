@@ -25,6 +25,7 @@ ROUTER_IP = ""
 LEASE_TIME_IP = ""
 DNS_IP1 = ""
 DNS_IP2 = ""
+DNS_NAME = ""
 
 log_lock = th.Lock() # Lock for log_update()
 log_database = th.Lock() # Lock for log_database_update()
@@ -136,6 +137,12 @@ def options_translator(opt):
 	if opt['id'] == 50:
 		return opt['data'].replace(' ', '.')
 
+def string_to_byte(string):
+	byte=b''
+	for b in string:
+		byte=byte+bytes([ord(b)])
+	return byte
+
 def check_message_type(data):
 	"""
 	Function to check message type (DISCOVER, OFFER, REQUEST, ACK).
@@ -187,6 +194,8 @@ def dhcp_offer(data, addr, ip):
 		DHCPOptions7 = bytes([6, 8]) + s.inet_aton(DNS_IP1) + s.inet_aton(DNS_IP2) # DNS IP
 	elif DNS_IP1 != "":
 		DHCPOptions7 = bytes([6, 4]) + s.inet_aton(DNS_IP1)
+	if DNS_NAME != None:
+		DHCPOptions8 = bytes([15, len(DNS_NAME)]) + string_to_byte(DNS_NAME) # DNS NAME
 	data_to_send = b""
 
 	for val in value.values():
@@ -200,6 +209,7 @@ def dhcp_offer(data, addr, ip):
 	data_to_send += DHCPOptions5
 	data_to_send += DHCPOptions6
 	data_to_send += DHCPOptions7 
+	data_to_send += DHCPOptions8
 	data_to_send += bytes([255])
 
 	print(f"Data to send:\n{data_to_send}\n")
@@ -253,6 +263,8 @@ def dhcp_ack(data, addr, ip):
 		DHCPOptions7 = bytes([6, 8]) + s.inet_aton(DNS_IP1) + s.inet_aton(DNS_IP2) # DNS IP
 	elif DNS_IP1 != "":
 		DHCPOptions7 = bytes([6, 4]) + s.inet_aton(DNS_IP2)
+	if DNS_NAME != None:
+		DHCPOptions8 = bytes([15, len(DNS_NAME)]) + string_to_byte(DNS_NAME) # DNS NAME
 	data_to_send = b""
 
 	for val in value.values():
@@ -266,6 +278,7 @@ def dhcp_ack(data, addr, ip):
 	data_to_send += DHCPOptions5
 	data_to_send += DHCPOptions6
 	data_to_send += DHCPOptions7
+	data_to_send += DHCPOptions8
 	data_to_send += bytes([255])
 
 	print(f"Data to send:\n{data_to_send}\n")
@@ -394,6 +407,7 @@ TARGET_IP = config['broadcast_ip']
 LEASE_TIME_IP = config['client_lease_time']
 DNS_IP1 = config['dns_addr1']
 DNS_IP2 = config['dns_addr2']
+DNS_NAME = config['dns_name']
 
 # Check information
 print(f'Server Configuration:\n')
@@ -403,6 +417,7 @@ print(f'Server client first IP:{CLIENT_FIRST_ADDR}')
 print(f'Server client last IP:{CLIENT_LAST_ADDR}')
 print(f'Server router IP:{ROUTER_IP}')
 print(f'Server target(broadcast) IP:{TARGET_IP}')
+print(f'Server domain name:{TARGET_IP}')
 print(f'Server lease time IP:{LEASE_TIME_IP}\n')
 
 if DHCP_IP == '' or DHCP_MASK_IP == '' or CLIENT_FIRST_ADDR == '' or CLIENT_LAST_ADDR == '' or ROUTER_IP == '' or TARGET_IP == '' or LEASE_TIME_IP == '':
