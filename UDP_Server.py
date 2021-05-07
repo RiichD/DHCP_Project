@@ -190,11 +190,11 @@ def dhcp_offer(data, addr, ip):
 	DHCPOptions4 = bytes([51, 4]) + s.inet_aton(str(LEASE_TIME_IP)) # IP lease time
 	DHCPOptions5 = bytes([54, 4]) + s.inet_aton(DHCP_IP) # DHCP server
 	DHCPOptions6 = bytes([28, 4]) + s.inet_aton(TARGET_IP) # Broadcast IP
-	if DNS_IP2 != None:
+	if DNS_IP2 != "":
 		DHCPOptions7 = bytes([6, 8]) + s.inet_aton(DNS_IP1) + s.inet_aton(DNS_IP2) # DNS IP
 	elif DNS_IP1 != "":
 		DHCPOptions7 = bytes([6, 4]) + s.inet_aton(DNS_IP1)
-	if DNS_NAME != None:
+	if DNS_NAME != "":
 		DHCPOptions8 = bytes([15, len(DNS_NAME)]) + string_to_byte(DNS_NAME) # DNS NAME
 	data_to_send = b""
 
@@ -208,8 +208,10 @@ def dhcp_offer(data, addr, ip):
 	data_to_send += DHCPOptions4
 	data_to_send += DHCPOptions5
 	data_to_send += DHCPOptions6
-	data_to_send += DHCPOptions7 
-	data_to_send += DHCPOptions8
+	if DNS_IP1 != "" or DNS_IP2 != "":
+		data_to_send += DHCPOptions7 
+	if DNS_NAME != "":
+		data_to_send += DHCPOptions8
 	data_to_send += bytes([255])
 
 	print(f"Data to send:\n{data_to_send}\n")
@@ -259,10 +261,10 @@ def dhcp_ack(data, addr, ip):
 	DHCPOptions4 = bytes([51, 4]) + s.inet_aton(str(LEASE_TIME_IP)) # IP lease time
 	DHCPOptions5 = bytes([54, 4]) + s.inet_aton(DHCP_IP) # DHCP server
 	DHCPOptions6 = bytes([28, 4]) + s.inet_aton(TARGET_IP) # Broadcast IP
-	if DNS_IP2 != None:
+	if DNS_IP2 != "":
 		DHCPOptions7 = bytes([6, 8]) + s.inet_aton(DNS_IP1) + s.inet_aton(DNS_IP2) # DNS IP
 	elif DNS_IP1 != "":
-		DHCPOptions7 = bytes([6, 4]) + s.inet_aton(DNS_IP2)
+		DHCPOptions7 = bytes([6, 4]) + s.inet_aton(DNS_IP1)
 	if DNS_NAME != None:
 		DHCPOptions8 = bytes([15, len(DNS_NAME)]) + string_to_byte(DNS_NAME) # DNS NAME
 	data_to_send = b""
@@ -277,8 +279,10 @@ def dhcp_ack(data, addr, ip):
 	data_to_send += DHCPOptions4
 	data_to_send += DHCPOptions5
 	data_to_send += DHCPOptions6
-	data_to_send += DHCPOptions7
-	data_to_send += DHCPOptions8
+	if DNS_IP1 != "" or DNS_IP2 != "":
+		data_to_send += DHCPOptions7
+	if DNS_NAME != "":
+		data_to_send += DHCPOptions8
 	data_to_send += bytes([255])
 
 	print(f"Data to send:\n{data_to_send}\n")
