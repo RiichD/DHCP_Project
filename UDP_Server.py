@@ -5,7 +5,8 @@ import time as t
 import struct as st
 import random as r
 import threading as th
-import json
+import json as js
+
 #<!> DO NOT CHANGE VALUE BELOW <!>
 serverIP = ""
 serverPort = 67
@@ -352,7 +353,7 @@ def log_database_update():
 	log_database.acquire()
 	f = open("database.txt", "w")
 	for state in ip_state_list:
-		f.write(str(state)+ ': ' + str(ip_state_list[state]) + '\n')
+		f.write(js.dumps(str(state)+ ': ' + str(ip_state_list[state])) + '\n')
 	f.close()
 	log_database.release()
 

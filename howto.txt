@@ -1,0 +1,24 @@
+<!> suppose que les champs sont bien formatés. <!>
+
+- Associer une adrese IP fixe à la machine exécutant le serveur DHCP.
+Par exemple, voici une commande pour associer une IP à l'interface(enp0s8) en question:
+sudo ifconfig enp0s8 192.168.102.5 netmask 255.255.255.0
+
+- Editer le fichier conf.txt en remplissant les champs nécessaires au fonctionnement du serveur DHCP:
+network_addr correspond à l'adresse IP du serveur DHCP
+network_mask correspond au masque du serveur DHCP
+client_first_addr correspond au premier adresse IP de la plage
+client_last_addr correspond au dernier adresse IP de la plage
+client_lease_time correspond au bail en secondes
+router_ip correspond à l'IP du router par défaut(gateway)
+broadcast_ip correspond à l'IP de broadcast
+dns_addr1 correspond à l'IP du DNS primaire
+dns_addr2 correspond à l'IP du DNS secondaire
+dns_name correspond au nom du domaine
+
+- S'assurer que le(s) client(s) est dans le même réseau que le serveur DHCP
+
+- Démarrer le serveur en root avec la commande suivante :
+sudo python3 UDP_Server.py
+
+- Connecter le(s) client(s) en question
