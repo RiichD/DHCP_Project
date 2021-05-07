@@ -111,7 +111,7 @@ def options_decoder(data):
 
 	b_pos = 4 # Starts at 4 to ignore magic cookie
 	opt_size = len(opt_data)
-	
+
 	decoded_option = {}
 	while b_pos < opt_size:
 		if opt_data[b_pos] == 255:
@@ -210,15 +210,20 @@ def dhcp_ack(data, addr, ip):
 	value[dhcp_format[6]['field']] = b'\x00\x00' # flags
 	value[dhcp_format[7]['field']] = data[7]['ciaddr'] # ciaddr
 	
-	requested_ip = options_translator(options_decoder(data)['option_50'])
-	print(f"Client requested: {requested_ip}\n")
-	if not ip_state_list[requested_ip]['busy']:
-		print(f"{requested_ip} accepted!\n")
-		value[dhcp_format[8]['field']] = s.inet_aton(requested_ip) # yiaddr
+	if data[7]['ciaddr'] == s.inet_aton('0.0.0.0'):
+		print("Should be option 50 in the packet")
+		requested_ip = options_translator(options_decoder(data)['option_50'])
+		print(f"Client requested: {requested_ip}\n")
+		if not ip_state_list[requested_ip]['busy'] or ip_state_list[requested_ip]['busy']['client_mac'] == str(data[11]['chaddr']):
+			print(f"{requested_ip} accepted!\n")
+			value[dhcp_format[8]['field']] = s.inet_aton(requested_ip) # yiaddr
+		else:
+			print(f"{requested_ip} refused! Server gives {ip}\n")
+			value[dhcp_format[8]['field']] = s.inet_aton(ip) # yiaddr
 	else:
-		print(f"{requested_ip} refused! Server gives {ip}\n")
-		value[dhcp_format[8]['field']] = s.inet_aton(ip) # yiaddr
-
+		print("No option 50, an ip is chosen by the dhcp server")
+		value[dhcp_format[8]['field']] = data[7]['ciaddr'] # yiaddr
+	
 	value[dhcp_format[9]['field']] = s.inet_aton(DHCP_IP) # siaddr
 	value[dhcp_format[10]['field']] = data[10]['giaddr'] # giaddr
 	value[dhcp_format[11]['field']] = data[11]['chaddr'] # chaddr
@@ -249,7 +254,7 @@ def dhcp_ack(data, addr, ip):
 	ip_state_list[ip]['client_mac'] = str(data[11]['chaddr'])
 	ip_state_list[ip]['lease_time'] = t.time()
 	server.sendto(data_to_send, (TARGET_IP, 68))
-	server.sendto(data_to_send, addr)
+	#server.sendto(data_to_send, addr)
 	print(f"DHCP Ack data sent to:{addr}\n")
 	return data_to_send
 
@@ -284,7 +289,7 @@ DHCP Updates
 """
 def log_update(data):
 	log_lock.acquire()
-	f = open("log_file", "a+")
+	f = open("log_file.txt", "a+")
 	f.write(data)
 	f.close()
 	log_lock.release()
