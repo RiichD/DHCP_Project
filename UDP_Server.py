@@ -167,135 +167,140 @@ def check_message_type(data):
 DHCP Services
 """
 def dhcp_offer(data, addr, ip):
-	print(ip)
-	value = {}
-	value[dhcp_format[0]['field']] = b'\x02' # op_code
-	value[dhcp_format[1]['field']] = b'\x01' # htype
-	value[dhcp_format[2]['field']] = b'\x06' # hlen
-	value[dhcp_format[3]['field']] = b'\x00' # hops
-	value[dhcp_format[4]['field']] = data[4]['xid'] # xid
-	value[dhcp_format[5]['field']] = b'\x00\x00' # secs
-	value[dhcp_format[6]['field']] = b'\x00\x00' # flags
-	value[dhcp_format[7]['field']] = data[7]['ciaddr'] # ciaddr
-	value[dhcp_format[8]['field']] = s.inet_aton(ip) # yiaddr
-	value[dhcp_format[9]['field']] = s.inet_aton(DHCP_IP) # siaddr
-	value[dhcp_format[10]['field']] = data[10]['giaddr'] # giaddr
-	value[dhcp_format[11]['field']] = data[11]['chaddr'] # chaddr
-	value[dhcp_format[12]['field']] = bytearray(64) # sname
-	value[dhcp_format[13]['field']] = bytearray(128) # file
+	try:
+		print(ip)
+		value = {}
+		value[dhcp_format[0]['field']] = b'\x02' # op_code
+		value[dhcp_format[1]['field']] = b'\x01' # htype
+		value[dhcp_format[2]['field']] = b'\x06' # hlen
+		value[dhcp_format[3]['field']] = b'\x00' # hops
+		value[dhcp_format[4]['field']] = data[4]['xid'] # xid
+		value[dhcp_format[5]['field']] = b'\x00\x00' # secs
+		value[dhcp_format[6]['field']] = b'\x00\x00' # flags
+		value[dhcp_format[7]['field']] = data[7]['ciaddr'] # ciaddr
+		value[dhcp_format[8]['field']] = s.inet_aton(ip) # yiaddr
+		value[dhcp_format[9]['field']] = s.inet_aton(DHCP_IP) # siaddr
+		value[dhcp_format[10]['field']] = data[10]['giaddr'] # giaddr
+		value[dhcp_format[11]['field']] = data[11]['chaddr'] # chaddr
+		value[dhcp_format[12]['field']] = bytearray(64) # sname
+		value[dhcp_format[13]['field']] = bytearray(128) # file
 
-	magic_cookie = s.inet_aton('99.130.83.99') # Default value
-	DHCPOptions1 = bytes([53, 1, 2]) # => option 53, length 1, DHCP Offer
-	DHCPOptions2 = bytes([1, 4]) + s.inet_aton(DHCP_MASK_IP) # Subnet mask
-	DHCPOptions3 = bytes([3, 4]) + s.inet_aton(ROUTER_IP) # Router
-	DHCPOptions4 = bytes([51, 4]) + s.inet_aton(str(LEASE_TIME_IP)) # IP lease time
-	DHCPOptions5 = bytes([54, 4]) + s.inet_aton(DHCP_IP) # DHCP server
-	DHCPOptions6 = bytes([28, 4]) + s.inet_aton(TARGET_IP) # Broadcast IP
-	if DNS_IP2 != "":
-		DHCPOptions7 = bytes([6, 8]) + s.inet_aton(DNS_IP1) + s.inet_aton(DNS_IP2) # DNS IP
-	elif DNS_IP1 != "":
-		DHCPOptions7 = bytes([6, 4]) + s.inet_aton(DNS_IP1)
-	if DNS_NAME != "":
-		DHCPOptions8 = bytes([15, len(DNS_NAME)]) + string_to_byte(DNS_NAME) # DNS NAME
-	data_to_send = b""
+		magic_cookie = s.inet_aton('99.130.83.99') # Default value
+		DHCPOptions1 = bytes([53, 1, 2]) # => option 53, length 1, DHCP Offer
+		DHCPOptions2 = bytes([1, 4]) + s.inet_aton(DHCP_MASK_IP) # Subnet mask
+		DHCPOptions3 = bytes([3, 4]) + s.inet_aton(ROUTER_IP) # Router
+		DHCPOptions4 = bytes([51, 4]) + s.inet_aton(str(LEASE_TIME_IP)) # IP lease time
+		DHCPOptions5 = bytes([54, 4]) + s.inet_aton(DHCP_IP) # DHCP server
+		DHCPOptions6 = bytes([28, 4]) + s.inet_aton(TARGET_IP) # Broadcast IP
+		if DNS_IP2 != "":
+			DHCPOptions7 = bytes([6, 8]) + s.inet_aton(DNS_IP1) + s.inet_aton(DNS_IP2) # DNS IP
+		elif DNS_IP1 != "":
+			DHCPOptions7 = bytes([6, 4]) + s.inet_aton(DNS_IP1)
+		if DNS_NAME != "":
+			DHCPOptions8 = bytes([15, len(DNS_NAME)]) + string_to_byte(DNS_NAME) # DNS NAME
+		data_to_send = b""
 
-	for val in value.values():
-		data_to_send += val
+		for val in value.values():
+			data_to_send += val
 
-	data_to_send += magic_cookie
-	data_to_send += DHCPOptions1
-	data_to_send += DHCPOptions2
-	data_to_send += DHCPOptions3
-	data_to_send += DHCPOptions4
-	data_to_send += DHCPOptions5
-	data_to_send += DHCPOptions6
-	if DNS_IP1 != "" or DNS_IP2 != "":
-		data_to_send += DHCPOptions7 
-	if DNS_NAME != "":
-		data_to_send += DHCPOptions8
-	data_to_send += bytes([255])
+		data_to_send += magic_cookie
+		data_to_send += DHCPOptions1
+		data_to_send += DHCPOptions2
+		data_to_send += DHCPOptions3
+		data_to_send += DHCPOptions4
+		data_to_send += DHCPOptions5
+		data_to_send += DHCPOptions6
+		if DNS_IP1 != "" or DNS_IP2 != "":
+			data_to_send += DHCPOptions7 
+		if DNS_NAME != "":
+			data_to_send += DHCPOptions8
+		data_to_send += bytes([255])
 
-	print(f"Data to send:\n{data_to_send}\n")
-	server.sendto(data_to_send, (TARGET_IP, 68))
-	server.sendto(data_to_send, addr)
-	print(f"DHCP Offer data sent to:{addr}\n")
-	return data_to_send
+		print(f"Data to send:\n{data_to_send}\n")
+		server.sendto(data_to_send, (TARGET_IP, 68))
+		server.sendto(data_to_send, addr)
+		print(f"DHCP Offer data sent to:{addr}\n")
+		return data_to_send
+	except Exception as exc:
+		print(f'Error in dhcp OFFER:{exc}\n')
+		return 'Error in dhcp OFFER:{exc}\n'
 
 def dhcp_ack(data, addr, ip):
-	value = {}
-	value[dhcp_format[0]['field']] = b'\x02' # op_code
-	value[dhcp_format[1]['field']] = b'\x01' # htype
-	value[dhcp_format[2]['field']] = b'\x06' # hlen
-	value[dhcp_format[3]['field']] = b'\x00' # hops
-	value[dhcp_format[4]['field']] = data[4]['xid'] # xid
-	value[dhcp_format[5]['field']] = b'\x00\x00' # secs
-	value[dhcp_format[6]['field']] = b'\x00\x00' # flags
-	value[dhcp_format[7]['field']] = data[7]['ciaddr'] # ciaddr
-	
-	if data[7]['ciaddr'] == s.inet_aton('0.0.0.0'):
-		print("Should be option 50 in the packet")
-		requested_ip = options_translator(options_decoder(data)['option_50'])
-		print(f"Client requested: {requested_ip}\n")
+	try:
+		value = {}
+		value[dhcp_format[0]['field']] = b'\x02' # op_code
+		value[dhcp_format[1]['field']] = b'\x01' # htype
+		value[dhcp_format[2]['field']] = b'\x06' # hlen
+		value[dhcp_format[3]['field']] = b'\x00' # hops
+		value[dhcp_format[4]['field']] = data[4]['xid'] # xid
+		value[dhcp_format[5]['field']] = b'\x00\x00' # secs
+		value[dhcp_format[6]['field']] = b'\x00\x00' # flags
+		value[dhcp_format[7]['field']] = data[7]['ciaddr'] # ciaddr
+		
+		if data[7]['ciaddr'] == s.inet_aton('0.0.0.0'):
+			requested_ip = options_translator(options_decoder(data)['option_50'])
+			print(f"Client requested: {requested_ip}\n")
 
-		if not ip_state_list[requested_ip]['busy'] or ip_state_list[requested_ip]['client_mac'] == str(data[11]['chaddr']):
+			if not ip_state_list[requested_ip]['busy'] or ip_state_list[requested_ip]['client_mac'] == str(data[11]['chaddr']):
 
-			print(f"{requested_ip} accepted!\n")
-			value[dhcp_format[8]['field']] = s.inet_aton(requested_ip) # yiaddr
+				print(f"{requested_ip} accepted!\n")
+				value[dhcp_format[8]['field']] = s.inet_aton(requested_ip) # yiaddr
+			else:
+				print(f"{requested_ip} refused! Server gives {ip}\n")
+				value[dhcp_format[8]['field']] = s.inet_aton(ip) # yiaddr
 		else:
-			print(f"{requested_ip} refused! Server gives {ip}\n")
-			print("fnzifbzueifb",ip)
-			value[dhcp_format[8]['field']] = s.inet_aton(ip) # yiaddr
-	else:
-		print("No option 50, an ip is chosen by the dhcp server")
-		value[dhcp_format[8]['field']] = data[7]['ciaddr'] # yiaddr
-	
-	value[dhcp_format[9]['field']] = s.inet_aton(DHCP_IP) # siaddr
-	value[dhcp_format[10]['field']] = data[10]['giaddr'] # giaddr
-	value[dhcp_format[11]['field']] = data[11]['chaddr'] # chaddr
-	value[dhcp_format[12]['field']] = bytearray(64) # sname
-	value[dhcp_format[13]['field']] = bytearray(128) # file
+			value[dhcp_format[8]['field']] = data[7]['ciaddr'] # yiaddr
+		
+		value[dhcp_format[9]['field']] = s.inet_aton(DHCP_IP) # siaddr
+		value[dhcp_format[10]['field']] = data[10]['giaddr'] # giaddr
+		value[dhcp_format[11]['field']] = data[11]['chaddr'] # chaddr
+		value[dhcp_format[12]['field']] = bytearray(64) # sname
+		value[dhcp_format[13]['field']] = bytearray(128) # file
 
-	magic_cookie = s.inet_aton('99.130.83.99') # Default value
-	DHCPOptions1 = bytes([53, 1, 5]) # => option 53, length 1, DHCP Ack
-	DHCPOptions2 = bytes([1, 4]) + s.inet_aton(DHCP_MASK_IP) # Subnet mask
-	DHCPOptions3 = bytes([3, 4]) + s.inet_aton(ROUTER_IP) # Router
-	DHCPOptions4 = bytes([51, 4]) + s.inet_aton(str(LEASE_TIME_IP)) # IP lease time
-	DHCPOptions5 = bytes([54, 4]) + s.inet_aton(DHCP_IP) # DHCP server
-	DHCPOptions6 = bytes([28, 4]) + s.inet_aton(TARGET_IP) # Broadcast IP
-	if DNS_IP2 != "":
-		DHCPOptions7 = bytes([6, 8]) + s.inet_aton(DNS_IP1) + s.inet_aton(DNS_IP2) # DNS IP
-	elif DNS_IP1 != "":
-		DHCPOptions7 = bytes([6, 4]) + s.inet_aton(DNS_IP1)
-	if DNS_NAME != None:
-		DHCPOptions8 = bytes([15, len(DNS_NAME)]) + string_to_byte(DNS_NAME) # DNS NAME
-	data_to_send = b""
+		magic_cookie = s.inet_aton('99.130.83.99') # Default value
+		DHCPOptions1 = bytes([53, 1, 5]) # => option 53, length 1, DHCP Ack
+		DHCPOptions2 = bytes([1, 4]) + s.inet_aton(DHCP_MASK_IP) # Subnet mask
+		DHCPOptions3 = bytes([3, 4]) + s.inet_aton(ROUTER_IP) # Router
+		DHCPOptions4 = bytes([51, 4]) + s.inet_aton(str(LEASE_TIME_IP)) # IP lease time
+		DHCPOptions5 = bytes([54, 4]) + s.inet_aton(DHCP_IP) # DHCP server
+		DHCPOptions6 = bytes([28, 4]) + s.inet_aton(TARGET_IP) # Broadcast IP
+		if DNS_IP2 != "":
+			DHCPOptions7 = bytes([6, 8]) + s.inet_aton(DNS_IP1) + s.inet_aton(DNS_IP2) # DNS IP
+		elif DNS_IP1 != "":
+			DHCPOptions7 = bytes([6, 4]) + s.inet_aton(DNS_IP1)
+		if DNS_NAME != None:
+			DHCPOptions8 = bytes([15, len(DNS_NAME)]) + string_to_byte(DNS_NAME) # DNS NAME
+		data_to_send = b""
 
-	for val in value.values():
-		data_to_send += val
+		for val in value.values():
+			data_to_send += val
 
-	data_to_send += magic_cookie
-	data_to_send += DHCPOptions1
-	data_to_send += DHCPOptions2
-	data_to_send += DHCPOptions3
-	data_to_send += DHCPOptions4
-	data_to_send += DHCPOptions5
-	data_to_send += DHCPOptions6
-	if DNS_IP1 != "" or DNS_IP2 != "":
-		data_to_send += DHCPOptions7
-	if DNS_NAME != "":
-		data_to_send += DHCPOptions8
-	data_to_send += bytes([255])
+		data_to_send += magic_cookie
+		data_to_send += DHCPOptions1
+		data_to_send += DHCPOptions2
+		data_to_send += DHCPOptions3
+		data_to_send += DHCPOptions4
+		data_to_send += DHCPOptions5
+		data_to_send += DHCPOptions6
+		if DNS_IP1 != "" or DNS_IP2 != "":
+			data_to_send += DHCPOptions7
+		if DNS_NAME != "":
+			data_to_send += DHCPOptions8
+		data_to_send += bytes([255])
 
-	print(f"Data to send:\n{data_to_send}\n")
-	ip = s.inet_ntoa(value[dhcp_format[8]['field']])
-	print("the ip in the packet : ", ip)
-	ip_state_list[ip]['busy'] = True
-	ip_state_list[ip]['client_mac'] = str(data[11]['chaddr'])
-	ip_state_list[ip]['lease_time'] = t.time()
-	server.sendto(data_to_send, (TARGET_IP, 68))
-	#server.sendto(data_to_send, addr)
-	print(f"DHCP Ack data sent to:{addr}\n")
-	return data_to_send
+		print(f"Data to send:\n{data_to_send}\n")
+		ip = s.inet_ntoa(value[dhcp_format[8]['field']])
+		print("the ip in the packet : ", ip)
+		ip_state_list[ip]['busy'] = True
+		ip_state_list[ip]['client_mac'] = str(data[11]['chaddr'])
+		ip_state_list[ip]['lease_time'] = t.time()
+		server.sendto(data_to_send, (TARGET_IP, 68))
+		#server.sendto(data_to_send, addr)
+		print(f"DHCP Ack data sent to:{addr}\n")
+		return data_to_send
+	except Exception as exc:
+		print(f'Error in dhcp ACK:{exc}\n')
+		return 'Error in dhcp ACK:{exc}\n'
 
 def ip_selection(ip_state_list, randomize):
 	"""
@@ -398,7 +403,7 @@ def start():
 		
 		if selected_ip != '0.0.0.0' and selected_ip != '':			
 			print("Selected ip: ", selected_ip)
-			th.Thread(target=handle_client(data, addr, selected_ip))
+			th.Thread(target=handle_client(data, addr, selected_ip)).start()
 """
 MAIN
 """
